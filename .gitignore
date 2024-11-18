@@ -1,0 +1,65 @@
+# Ignore build directories
+build/
+cmake-build-*/
+
+# Ignore generated ANTLR files
+generated/
+
+# Ignore ANTLR runtime files if built locally
+antlr-runtime/
+
+# Ignore compiled object files, libraries, and executables
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.exe
+
+# Ignore C++ cache files
+*.gch
+*.pch
+
+# Ignore debugging files
+*.log
+*.dSYM/
+*.stackdump
+vgcore.*
+
+# Ignore IDE-specific files
+.idea/
+.vscode/
+*.code-workspace
+
+# Ignore temporary system files
+*.tmp
+*.swp
+*.swo
+*.bak
+*.orig
+.DS_Store
+Thumbs.db
+
+# Ignore user-specific configuration files
+*.iml
+*.user
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.directory
+
+# Ignore dependency files
+Makefile
+CMakeFiles/
+CMakeCache.txt
+compile_commands.json
+
+# Ignore test outputs
+*.out
+*.test
+
+# Ignore backup or hidden files
+*~
+# Files starting with `.`, unless explicitly tracked
+.*
+!.gitignore
