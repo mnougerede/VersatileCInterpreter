@@ -3,4 +3,6 @@ project(VersatileCInterpreter)
 
 set(CMAKE_CXX_STANDARD 26)
 
-add_executable(VersatileCInterpreter main.cpp)
+add_executable(VersatileCInterpreter main.cpp
+        Interpreter.cpp
+        Interpreter.h)
