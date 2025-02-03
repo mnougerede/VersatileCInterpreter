@@ -1,5 +1,7 @@
 grammar C;
 
+options { visitor=true; }
+
 // Top-level rule for the REPL
 replInput
     : expression                # EvaluateExpression
@@ -10,9 +12,21 @@ replInput
 
 // Define expressions
 expression
-    : expression op=('*'|'/') expression   # MulDivExpression
-    | expression op=('+'|'-') expression   # AddSubExpression
-    | '(' expression ')'                   # ParenthesizedExpression
+    : term ( addOp term)*   # AddSubExpression
+    ;
+addOp
+    : PLUS
+    | MINUS
+    ;
+term
+    : factor (mulOp factor)*          # MulDivExpression
+    ;
+mulOp
+    : TIMES
+    | DIV
+    ;
+factor
+    : '(' expression ')'                   # ParenthesizedExpression
     | Number                               # NumberExpression
     ;
 
@@ -34,6 +48,11 @@ expression
 
 
 // Tokens
+PLUS   : '+' ;
+MINUS  : '-' ;
+TIMES  : '*' ;
+DIV    : '/' ;
+IDENTIFIER : [a-zA-Z_][a-zA-Z0-9_]* ;
 Number
     : [0-9]+ ('.' [0-9]+)?                 // Integer or floating-point number
     ;
