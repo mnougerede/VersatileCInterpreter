@@ -26,7 +26,8 @@ mulOp
     | DIV
     ;
 factor
-    : '(' expression ')'                   # ParenthesizedExpression
+    : MINUS factor                         # UnaryMinusExpression
+    | '(' expression ')'                   # ParenthesizedExpression
     | Number                               # NumberExpression
     ;
 

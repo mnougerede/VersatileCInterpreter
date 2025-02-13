@@ -1,17 +1,29 @@
 cmake_minimum_required(VERSION 3.29)
 project(VersatileCInterpreter)
 
-set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_TOOLCHAIN_FILE "[/home/max/dev/vcpkg]/scripts/buildsystems/vcpkg.cmake")
+set(CMAKE_TOOLCHAIN_FILE "/home/max/dev/vcpkg/scripts/buildsystems/vcpkg.cmake")
+
 find_package(GTest REQUIRED)
+find_package(antlr4-runtime CONFIG REQUIRED)
 
-add_executable(VersatileCInterpreter main.cpp
-        Interpreter.cpp
-        Interpreter.h
-        CVisitor.h
-        CVisitor.cpp
-        CBaseVisitor.h
-        CBaseVisitor.cpp)
+include_directories(${CMAKE_SOURCE_DIR}/generated)
 
-target_link_libraries(VersatileCInterpreter GTest::gtest)
+add_executable(VersatileCInterpreter
+        src/main.cpp
+        src/CInterpreterVisitor.cpp
+        src/CInterpreterVisitor.h
+        src/Interpreter.cpp
+        src/Interpreter.h
+        generated/CParser.cpp
+        generated/CLexer.cpp
+        generated/CBaseVisitor.cpp
+        generated/CVisitor.cpp
+)
+
+target_link_libraries(VersatileCInterpreter PRIVATE antlr4_static)
+
+# Include tests
+add_subdirectory(tests)
