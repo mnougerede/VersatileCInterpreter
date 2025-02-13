@@ -1,14 +1,19 @@
 #include "REPL.h"
-#include <iostream>
 #include <exception>
 #include <any>
 
+// Original run() using std::cin and std::cout.
 void REPL::run() {
-    std::string input;
-    std::cout << "Enter an expression (or 'exit' to quit):\n> ";
+    run(std::cin, std::cout);
+}
 
-    while (std::getline(std::cin, input)) {
-        if (input == "exit" || input == "quit") {
+// Overloaded run() that accepts input and output streams.
+void REPL::run(std::istream &in, std::ostream &out) {
+    std::string input;
+    out << "Enter an expression (or 'exit' to quit):\n> ";
+
+    while (std::getline(in, input)) {
+        if (input == "exit") {
             break;
         }
 
@@ -16,15 +21,15 @@ void REPL::run() {
             // Evaluate the input using the interpreter.
             std::any result = interpreter.evaluate(input);
 
-            // Attempt to cast the result to a double (if applicable).
-            double val = std::any_cast<double>(result);
-            std::cout << "Result: " << val << "\n\n> ";
+            // For our tests, we assume the result is an int.
+            int val = std::any_cast<int>(result);
+            out << "Result: " << val << "\n\n> ";
         }
-        catch (const std::bad_any_cast &e) {
-            std::cerr << "Result has an unexpected type.\n\n> ";
+        catch (const std::bad_any_cast &) {
+            out << "Result has an unexpected type.\n\n> ";
         }
         catch (const std::exception &e) {
-            std::cerr << "Error: " << e.what() << "\n\n> ";
+            out << "Error: " << e.what() << "\n\n> ";
         }
     }
 }

@@ -11,6 +11,7 @@ find_package(GTest REQUIRED)
 add_executable(VersatileCInterpreterTests
         main.cpp
         CInterpreterVisitorTests.cpp
+        InterpreterTests.cpp
 )
 
 # Link GoogleTest
