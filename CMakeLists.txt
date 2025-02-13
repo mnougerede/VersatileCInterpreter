@@ -21,6 +21,8 @@ add_executable(VersatileCInterpreter
         generated/CLexer.cpp
         generated/CBaseVisitor.cpp
         generated/CVisitor.cpp
+        src/REPL.cpp
+        src/REPL.h
 )
 
 target_link_libraries(VersatileCInterpreter PRIVATE antlr4_static)

@@ -1,25 +1,17 @@
-//
-// Created by max on 05/02/25.
-//
-
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
 #include <string>
+#include <any>
 #include "antlr4-runtime.h"
-#include "CInterpreterVisitor.h"
-#include "CParser.h"
 #include "CLexer.h"
+#include "CParser.h"
+#include "CInterpreterVisitor.h"
 
 class Interpreter {
 public:
-    Interpreter();  // Constructor for setup if needed
-    int evaluate(const std::string& code);  // Evaluates an expression and returns an int
-
-private:
-    antlr4::ANTLRInputStream inputStream;
-    CInterpreterVisitor visitor;
+    // Evaluates a string of C code and returns the result as std::any.
+    std::any evaluate(const std::string &code);
 };
 
-
-#endif //INTERPRETER_H
+#endif // INTERPRETER_H
