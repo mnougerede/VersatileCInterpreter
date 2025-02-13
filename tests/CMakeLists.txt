@@ -12,6 +12,7 @@ add_executable(VersatileCInterpreterTests
         main.cpp
         CInterpreterVisitorTests.cpp
         InterpreterTests.cpp
+        REPLTests.cpp
 )
 
 # Link GoogleTest
