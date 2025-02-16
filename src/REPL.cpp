@@ -2,6 +2,34 @@
 #include <exception>
 #include <any>
 
+// This function uses the grammar to decide whether to wrap the input.
+static std::string wrapInputUsingGrammar(const std::string &code) {
+    // Create an ANTLR input stream from the code.
+    antlr4::ANTLRInputStream inputStream(code);
+
+    // Run the lexer on the input.
+    CLexer lexer(&inputStream);
+    antlr4::CommonTokenStream tokens(&lexer);
+
+    // Create the parser.
+    CParser parser(&tokens);
+    parser.removeErrorListeners();  // Optionally remove default error output.
+
+    // Parse the input using your top-level rule.
+    CParser::ReplInputContext* ctx = parser.replInput();
+
+    // If the parse tree is an instance of EvaluateExpressionContext, it's a bare expression.
+    if (dynamic_cast<CParser::EvaluateExpressionContext*>(ctx) != nullptr) {
+        // Wrap the bare expression into a function.
+        std::ostringstream wrapped;
+        wrapped << "int __repl_wrapper() { return (" << code << "); }";
+        return wrapped.str();
+    }
+
+    // Otherwise, assume the input is already a complete definition.
+    return code;
+}
+
 // Original run() using std::cin and std::cout.
 void REPL::run() {
     run(std::cin, std::cout);
