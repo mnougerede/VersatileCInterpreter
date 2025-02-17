@@ -5,9 +5,56 @@ options { visitor=true; }
 // Top-level rule for the REPL
 replInput
     : expression                # EvaluateExpression
-//    | statement+                # ExecuteStatements
-//    | functionDefinition+       # AddFunctionDefinitions
+    | statement+                # ExecuteStatements
+    | functionDefinition+       # AddFunctionDefinitions
 //    | translationUnit           # ExecuteFullProgram
+    ;
+
+// A minimal function definition rule.
+functionDefinition
+    : typeSpecifier IDENTIFIER '(' parameterList? ')' compoundStatement
+    ;
+
+// Minimal type specifiers. Add others as needed.
+typeSpecifier
+    : 'int'
+    | 'float'
+    | 'double'
+    | 'void'
+    ;
+
+parameterList
+    : parameter (',' parameter)*
+    ;
+
+parameter
+    : typeSpecifier IDENTIFIER
+    ;
+
+compoundStatement
+    : '{' declaration* statement* '}'
+    ;
+
+// A declaration is simplified: type specifier, declarator, and semicolon.
+declaration
+    : typeSpecifier declarator ';'
+    ;
+
+// A simple declarator is just an identifier.
+declarator
+    : IDENTIFIER
+    ;
+
+// A statement can be an expression statement or a compound statement - others to be added as needed.
+statement
+    : expressionStatement
+    | compoundStatement
+    | declaration
+    ;
+
+// An expression statement is an expression followed by a semicolon. It may be empty.
+expressionStatement
+    : expression? ';'
     ;
 
 // Define expressions
