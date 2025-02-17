@@ -6,7 +6,7 @@ options { visitor=true; }
 replInput
     : expression EOF                # EvaluateExpression
     | statement+ EOF                # ExecuteStatements
-    | functionDefinition+       # AddFunctionDefinitions
+    | functionDefinition+           # AddFunctionDefinitions
 //    | translationUnit           # ExecuteFullProgram
     ;
 
@@ -35,9 +35,9 @@ compoundStatement
     : '{' declaration* statement* '}'
     ;
 
-// A declaration is simplified: type specifier, declarator, and semicolon.
+// A declaration with optional initialiser
 declaration
-    : typeSpecifier declarator ';'
+    : typeSpecifier declarator ('=' expression)? ';'
     ;
 
 // A simple declarator is just an identifier.
@@ -76,15 +76,9 @@ factor
     : MINUS factor                         # UnaryMinusExpression
     | '(' expression ')'                   # ParenthesizedExpression
     | Number                               # NumberExpression
+    | IDENTIFIER                           # VariableReference
     ;
 
-// Statements
-//statement
-//    : declaration
-//    | expressionStatement
-//    | compoundStatement
-////    | ...
-//    ;
 
 // Program components
 //translationUnit
