@@ -11,7 +11,7 @@ public:
     void run();
 
     // Overloaded run() method for testing (or use in the IDE) that accepts streams.
-    void run(std::istream &in, std::ostream &out);
+    void run(std::istream &in, std::ostream &out, bool testMode);
 
 private:
     Interpreter interpreter; // Instance of Interpreter to evaluate input.

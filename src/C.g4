@@ -4,8 +4,8 @@ options { visitor=true; }
 
 // Top-level rule for the REPL
 replInput
-    : expression                # EvaluateExpression
-    | statement+                # ExecuteStatements
+    : expression EOF                # EvaluateExpression
+    | statement+ EOF                # ExecuteStatements
     | functionDefinition+       # AddFunctionDefinitions
 //    | translationUnit           # ExecuteFullProgram
     ;
