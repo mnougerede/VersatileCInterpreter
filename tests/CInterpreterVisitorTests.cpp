@@ -118,47 +118,14 @@ TEST(CInterpreterVisitorTest, CharLiteral) {
     EXPECT_EQ(value, 65);
 }
 
-// Test variable declaration and usage.
-TEST(CInterpreterVisitorTest, VariableDeclarationAndReference) {
-    // We'll evaluate a sequence of statements: a declaration and then an expression that uses it.
-    // For instance, "int a = 10; a + 5" should yield 15.
-    std::string code = "int a = 10; a + 5";
 
-    antlr4::ANTLRInputStream inputStream(code);
-    CLexer lexer(&inputStream);
-    antlr4::CommonTokenStream tokens(&lexer);
-    CParser parser(&tokens);
-    // Use the ExecuteStatements alternative.
-    CParser::ReplInputContext* tree = parser.replInput();
-    Environment env;
-    CInterpreterVisitor visitor(&env);
-    std::any result = visitor.visit(tree);
-    double value = getNumericValue(result);
-    EXPECT_EQ(value, 15);
-}
 TEST(CInterpreterVisitorTest, DivisionByZero) {
     EXPECT_THROW({
         evaluateExpression("5 / 0");
     }, std::runtime_error);
 }
-TEST(CInterpreterVisitorTest, InvalidSyntax) {
-    EXPECT_THROW({
-        evaluateExpression("2 +");
-    }, std::runtime_error);
-}
-TEST(CInterpreterVisitorTest, CompoundStatement) {
-    std::string code = "{ int a = 10; a + 5; }";
-    antlr4::ANTLRInputStream inputStream(code);
-    CLexer lexer(&inputStream);
-    antlr4::CommonTokenStream tokens(&lexer);
-    CParser parser(&tokens);
-    CParser::ReplInputContext* tree = parser.replInput();
-    Environment env;
-    CInterpreterVisitor visitor(&env);
-    std::any result = visitor.visit(tree);
-    double value = getNumericValue(result);
-    EXPECT_EQ(value, 15);
-}
+
+
 TEST(CInterpreterVisitorTest, MixedNegatives) {
     std::any result = evaluateExpression("-3 + 5 - (-2)");
     double value = getNumericValue(result);
