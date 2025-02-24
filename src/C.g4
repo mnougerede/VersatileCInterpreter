@@ -63,9 +63,13 @@ selectionStatement
     | SWITCH '(' expression ')' statement
     ;
 // Define expressions using operator precedence
-// Lowest precedence: Logical OR
+
 expression
-    : logicalOrExpression
+    : assignmentExpression
+    ;
+assignmentExpression
+    : logicalOrExpression                           # LogicalOrExpr
+    | unaryExpression ASSIGN assignmentExpression   # AssignmentExpr
     ;
 
 logicalOrExpression
@@ -137,6 +141,8 @@ PLUS        : '+' ;
 MINUS       : '-' ;
 TIMES       : '*' ;
 DIV         : '/' ;
+
+ASSIGN  : '=';
 
 OR      : '||';
 AND     : '&&';
