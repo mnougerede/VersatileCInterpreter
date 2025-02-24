@@ -36,6 +36,8 @@ public:
 
     std::any visitLogicalNotExpression(CParser::LogicalNotExpressionContext *ctx) override;
 
+    std::any visitAssignmentExpr(CParser::AssignmentExprContext *ctx) override;
+
 private:
     Environment* env;
 };

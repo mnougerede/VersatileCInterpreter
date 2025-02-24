@@ -173,6 +173,94 @@ std::any CInterpreterVisitor::visitLogicalNotExpression(CParser::LogicalNotExpre
     return CBaseVisitor::visitLogicalNotExpression(ctx);
 }
 
+std::any CInterpreterVisitor::visitAssignmentExpr(CParser::AssignmentExprContext *ctx) {
+
+    std::string varName = ctx->unaryExpression()->getText();
+    std::any rightResult = visit(ctx->assignmentExpression());
+
+    Variable var = env->get(varName);
+    VarType varType = var.type;
+
+    VarValue newValue;
+    if (varType == VarType::INT) {
+        try {
+            VarValue temp = std::any_cast<VarValue>(rightResult);
+            if (std::holds_alternative<int>(temp)) {
+                newValue = std::get<int>(temp);
+            } else if (std::holds_alternative<double>(temp)) {
+                newValue = static_cast<int>(std::get<double>(temp));
+            } else if (std::holds_alternative<char>(temp)) {
+                newValue = static_cast<int>(std::get<char>(temp));
+            } else {
+                throw std::runtime_error("Unexpected type in VarValue for int assignment");
+            }
+        } catch (const std::bad_any_cast&) {
+            if (rightResult.type() == typeid(char)) {
+                newValue = static_cast<int>(std::any_cast<char>(rightResult));
+            } else if (rightResult.type() == typeid(int)) {
+                newValue = std::any_cast<int>(rightResult);
+            } else if (rightResult.type() == typeid(double)) {
+                newValue = static_cast<int>(std::any_cast<double>(rightResult));
+            } else {
+                throw std::runtime_error("Assignment type mismatch for int");
+            }
+        }
+    } else if (varType == VarType::FLOAT || varType == VarType::DOUBLE) {
+        try {
+            VarValue temp = std::any_cast<VarValue>(rightResult);
+            if (std::holds_alternative<double>(temp))
+                newValue = std::get<double>(temp);
+            else if (std::holds_alternative<int>(temp)) {
+                newValue = static_cast<double>(std::get<int>(temp));
+            }
+            else if (std::holds_alternative<char>(temp)) {
+                newValue = static_cast<double>(std::get<char>(temp));
+            } else {
+                throw std::runtime_error("Unexpected type in VarValue for double assignment");
+            }
+        } catch (const std::bad_any_cast&) {
+            if (rightResult.type() == typeid(char))
+                newValue = static_cast<double>(std::any_cast<char>(rightResult));
+            else if (rightResult.type() == typeid(int))
+                newValue = static_cast<double>(std::any_cast<int>(rightResult));
+            else if (rightResult.type() == typeid(double))
+                newValue = std::any_cast<double>(rightResult);
+            else
+                throw std::runtime_error("Assignment type mismatch for double");
+        }
+    } else if (varType == VarType::CHAR) {
+        try {
+            VarValue temp = std::any_cast<VarValue>(rightResult);
+            if (std::holds_alternative<char>(temp))
+                newValue = std::get<char>(temp);
+            else if (std::holds_alternative<int>(temp)) {
+                newValue = static_cast<char>(std::get<int>(temp));
+            }
+            else if (std::holds_alternative<double>(temp)) {
+                newValue = static_cast<char>(std::get<char>(temp));
+            } else {
+                throw std::runtime_error("Unexpected type in VarValue for char assignment");
+            }
+        } catch (const std::bad_any_cast&) {
+            if (rightResult.type() == typeid(double))
+                newValue = static_cast<char>(std::any_cast<double>(rightResult));
+            else if (rightResult.type() == typeid(int))
+                newValue = static_cast<char>(std::any_cast<int>(rightResult));
+            else if (rightResult.type() == typeid(char))
+                newValue = std::any_cast<char>(rightResult);
+            else
+                throw std::runtime_error("Assignment type mismatch for double");
+        }
+
+
+    } else {
+        throw std::runtime_error("Unsupported variable type for assignment");
+    }
+    env->set(varName, varType, newValue);
+
+    return std::any(newValue);
+}
+
 
 std::any CInterpreterVisitor::visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) {
     return visit(ctx->expression());
