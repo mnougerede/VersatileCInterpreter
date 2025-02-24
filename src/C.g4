@@ -51,31 +51,66 @@ statement
     : expressionStatement
     | compoundStatement
     | declaration
+    | selectionStatement
     ;
 
 // An expression statement is an expression followed by a semicolon. It may be empty.
 expressionStatement
     : expression? ';'
     ;
-
-// Define expressions
+selectionStatement
+    : IF '(' expression ')' statement (ELSE statement)?
+    | SWITCH '(' expression ')' statement
+    ;
+// Define expressions using operator precedence
+// Lowest precedence: Logical OR
 expression
-    : term ( addOp term)*   # AddSubExpression
+    : logicalOrExpression
+    ;
+
+logicalOrExpression
+    : logicalAndExpression ( OR logicalAndExpression )*
+    ;
+logicalAndExpression
+    : equalityExpression ( AND equalityExpression )*
+    ;
+equalityExpression
+    : relationalExpression ( equalityOp relationalExpression )*
+    ;
+equalityOp
+    : EQ
+    | NEQ
+    ;
+relationalExpression
+    : additiveExpression ( relationalOp additiveExpression )*
+    ;
+relationalOp
+    : LT
+    | GT
+    | LTE
+    | GTE
+    ;
+additiveExpression
+    : multiplicativeExpression ( addOp multiplicativeExpression)*   # AddSubExpression
     ;
 addOp
     : PLUS
     | MINUS
     ;
-term
-    : factor (mulOp factor)*          # MulDivExpression
+multiplicativeExpression
+    : unaryExpression (mulOp unaryExpression)*          # MulDivExpression
     ;
 mulOp
     : TIMES
     | DIV
     ;
-factor
-    : MINUS factor                         # UnaryMinusExpression
-    | '(' expression ')'                   # ParenthesizedExpression
+unaryExpression
+    : MINUS unaryExpression                         # UnaryMinusExpression
+    | NOT unaryExpression                           # LogicalNotExpression
+    | primaryExpression                             # PrimaryExpr
+    ;
+primaryExpression
+    : '(' expression ')'                   # ParenthesizedExpression
     | literal                              # LiteralExpression
     | IDENTIFIER                           # VariableReference
     ;
@@ -95,10 +130,25 @@ literal
 
 
 // Tokens
+IF          : 'if';
+ELSE        : 'else';
+SWITCH      : 'switch';
 PLUS        : '+' ;
 MINUS       : '-' ;
 TIMES       : '*' ;
 DIV         : '/' ;
+
+OR      : '||';
+AND     : '&&';
+EQ      : '==';
+NEQ     : '!=';
+LT      : '<';
+GT      : '>';
+LTE     : '<=';
+GTE     : '>=';
+
+NOT     : '!';
+
 CharLiteral : '\'' . '\'' ;
 IDENTIFIER  : [a-zA-Z_][a-zA-Z0-9_]* ;
 Number
