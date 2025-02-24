@@ -1,6 +1,31 @@
 #include "REPL.h"
 #include <exception>
 #include <any>
+#include <typeinfo>
+#include "Variable.h"
+// Helper function to convert std::any to a string
+std::string anyToString(const std::any& value) {
+    try {
+        if (value.type() == typeid(VarValue)) {
+            VarValue num = std::any_cast<VarValue>(value);
+            return std::visit([](auto v) -> std::string {
+                return std::to_string(v);
+            }, num);
+        } else if (value.type() == typeid(int)) {
+            return std::to_string(std::any_cast<int>(value));
+        } else if (value.type() == typeid(double)) {
+            return std::to_string(std::any_cast<double>(value));
+        } else if (value.type() == typeid(char)) {
+            return std::string(1, std::any_cast<char>(value));
+        } else if (value.has_value()) {
+            return "[Unknown type]";
+        } else {
+            return "[No value]";
+        }
+    } catch (const std::bad_any_cast&) {
+        return "[Type conversion error]";
+    }
+}
 
 // Original run() using std::cin and std::cout.
 void REPL::run() {
@@ -27,19 +52,13 @@ void REPL::run(std::istream &in, std::ostream &out, bool testMode) {
             // Evaluate the input using the interpreter.
             std::any result = interpreter.evaluate(input);
 
-            // For our tests, we assume the result is a double.
-            auto val = std::any_cast<double>(result);
+            // Convert result to a string using the helper function.
+            std::string output = anyToString(result);
+
             if (testMode) {
-                out << val;
+                out << output;
             } else {
-                out << val << "\n\n> ";
-            }
-        }
-        catch (const std::bad_any_cast &) {
-            if (testMode) {
-                out << "Result has an unexpected type.";
-            } else {
-                out << "Result has an unexpected type.\n\n> ";
+                out << output << "\n\n> ";
             }
         }
         catch (const std::exception &e) {

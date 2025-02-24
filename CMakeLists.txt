@@ -25,6 +25,9 @@ add_executable(VersatileCInterpreter
         src/REPL.h
         src/CustomErrorListener.cpp
         src/CustomErrorListener.h
+        src/Environment.cpp
+        src/Environment.h
+        src/Variable.h
 )
 
 target_link_libraries(VersatileCInterpreter PRIVATE antlr4_static)

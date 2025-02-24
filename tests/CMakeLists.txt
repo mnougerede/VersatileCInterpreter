@@ -18,9 +18,11 @@ add_executable(VersatileCInterpreterTests
         ${CMAKE_SOURCE_DIR}/src/REPL.cpp
         ${CMAKE_SOURCE_DIR}/src/CInterpreterVisitor.cpp
         ${CMAKE_SOURCE_DIR}/src/CustomErrorListener.cpp
+        ${CMAKE_SOURCE_DIR}/src/Environment.cpp
 
         ${CMAKE_SOURCE_DIR}/generated/CLexer.cpp
         ${CMAKE_SOURCE_DIR}/generated/CParser.cpp
+        EnvironmentTests.cpp
 )
 
 target_include_directories(VersatileCInterpreterTests PRIVATE

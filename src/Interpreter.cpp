@@ -1,5 +1,7 @@
 #include "Interpreter.h"
 #include "CustomErrorListener.h"
+Interpreter::Interpreter()
+{}
 
 std::any Interpreter::evaluate(const std::string &code) {
     // Create the input stream from the code.
@@ -22,8 +24,26 @@ std::any Interpreter::evaluate(const std::string &code) {
     CParser::ReplInputContext *tree = parser.replInput();
 
     // Create our visitor.
-    CInterpreterVisitor visitor;
+    CInterpreterVisitor visitor(&globalEnv);
 
-    // Visit the parse tree and return the result.
-    return visitor.visit(tree);
+    // Visit the parse tree.
+    std::any rawResult = visitor.visit(tree);
+
+    // if the rawResult holds a VarValue, unwrap it.
+    if (rawResult.type() == typeid(VarValue)) {
+        VarValue value = std::any_cast<VarValue>(rawResult);
+        // Unwrap the variant and return the plain type.
+        if (std::holds_alternative<int>(value)) {
+            return std::any(std::get<int>(value));
+        } else if (std::holds_alternative<double>(value)) {
+            return std::any(std::get<double>(value));
+        } else if (std::holds_alternative<char>(value)) {
+            return std::any(std::get<char>(value));
+        } else {
+            // Shouldn't happen, unless you add new alternatives.
+            return {};
+        }
+    }
+    // If rawResult isn't a VarValue, assume it's already a plain type.
+    return rawResult;
 }

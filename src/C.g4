@@ -21,6 +21,7 @@ typeSpecifier
     | 'float'
     | 'double'
     | 'void'
+    | 'char'
     ;
 
 parameterList
@@ -37,7 +38,7 @@ compoundStatement
 
 // A declaration with optional initialiser
 declaration
-    : typeSpecifier declarator ('=' expression)? ';'
+    : typeSpecifier declarator ('=' expression)? ';'    # DeclareVariable
     ;
 
 // A simple declarator is just an identifier.
@@ -75,10 +76,14 @@ mulOp
 factor
     : MINUS factor                         # UnaryMinusExpression
     | '(' expression ')'                   # ParenthesizedExpression
-    | Number                               # NumberExpression
+    | literal                              # LiteralExpression
     | IDENTIFIER                           # VariableReference
     ;
 
+literal
+    : Number                        # NumberLiteral
+    | CharLiteral                   # CharLiteral
+    ;
 
 // Program components
 //translationUnit
@@ -90,11 +95,12 @@ factor
 
 
 // Tokens
-PLUS   : '+' ;
-MINUS  : '-' ;
-TIMES  : '*' ;
-DIV    : '/' ;
-IDENTIFIER : [a-zA-Z_][a-zA-Z0-9_]* ;
+PLUS        : '+' ;
+MINUS       : '-' ;
+TIMES       : '*' ;
+DIV         : '/' ;
+CharLiteral : '\'' . '\'' ;
+IDENTIFIER  : [a-zA-Z_][a-zA-Z0-9_]* ;
 Number
     : [0-9]+ ('.' [0-9]+)?                 // Integer or floating-point number
     ;
