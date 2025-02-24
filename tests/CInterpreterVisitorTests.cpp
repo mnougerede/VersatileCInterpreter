@@ -24,28 +24,27 @@ double getNumericValue(const std::any &result) {
     }
 }
 
+// Helper template to extract a value of type T from std::any.
+template <typename T>
+T getValue(const std::any &result) {
+    return std::any_cast<T>(result);
+}
+
 
 // Helper function to evaluate an expression using the visitor.
-// Assumes that the top-level rule is EvaluateExpression (i.e. an expression followed by EOF).
 std::any evaluateExpression(const std::string &expr) {
-    // Create an input stream from the expression string.
     antlr4::ANTLRInputStream inputStream(expr);
-    // Create a lexer for the input.
     CLexer lexer(&inputStream);
-    // Tokenize the input.
     antlr4::CommonTokenStream tokens(&lexer);
-    // Create a parser for the tokens.
     CParser parser(&tokens);
-    // Parse using the top-level rule.
+    // Use the top-level rule for expressions.
     CParser::ReplInputContext* tree = parser.replInput();
-    // Create an environment (global scope) for the visitor.
-    Environment env;
-    // Create your visitor instance.
+    Environment env;  // Global environment.
     CInterpreterVisitor visitor(&env);
-    // Visit the parse tree and return the result.
     return visitor.visit(tree);
 }
 
+// ----------------------- Numeric and Arithmetic Tests ------------------
 // Test that a number literal is evaluated correctly.
 TEST(CInterpreterVisitorTest, NumberLiteral) {
     std::any result = evaluateExpression("42");
@@ -154,4 +153,140 @@ TEST(CInterpreterVisitorTest, IntegerDivision) {
         value = std::any_cast<int>(result);
     }
     EXPECT_EQ(value, 2);
+}
+// ------------------- Relational Operators Tests -------------------
+
+// Test less-than operator (true case).
+TEST(CInterpreterVisitorTest, LessThanTrue) {
+    std::any result = evaluateExpression("3 < 5");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test less-than operator (false case).
+TEST(CInterpreterVisitorTest, LessThanFalse) {
+    std::any result = evaluateExpression("5 < 3");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+
+// Test less-than-or-equal operator.
+TEST(CInterpreterVisitorTest, LessThanOrEqual) {
+    std::any result = evaluateExpression("3 <= 3");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test greater-than operator.
+TEST(CInterpreterVisitorTest, GreaterThan) {
+    std::any result = evaluateExpression("5 > 3");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test greater-than-or-equal operator.
+TEST(CInterpreterVisitorTest, GreaterThanOrEqual) {
+    std::any result = evaluateExpression("3 >= 3");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// ------------------- Equality Operators Tests -------------------
+
+// Test equality operator (true case).
+TEST(CInterpreterVisitorTest, EqualityTrue) {
+    std::any result = evaluateExpression("3 == 3");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test equality operator (false case).
+TEST(CInterpreterVisitorTest, EqualityFalse) {
+    std::any result = evaluateExpression("3 == 4");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+
+// Test not-equals operator (true case).
+TEST(CInterpreterVisitorTest, NotEqualsTrue) {
+    std::any result = evaluateExpression("3 != 4");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test not-equals operator (false case).
+TEST(CInterpreterVisitorTest, NotEqualsFalse) {
+    std::any result = evaluateExpression("3 != 3");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+
+// ------------------- Logical Operators Tests -------------------
+
+// Test logical AND (true case).
+TEST(CInterpreterVisitorTest, LogicalAndTrue) {
+    std::any result = evaluateExpression("1 && 1");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test logical AND (false case).
+TEST(CInterpreterVisitorTest, LogicalAndFalse) {
+    std::any result = evaluateExpression("1 && 0");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+
+// Test logical OR (true case).
+TEST(CInterpreterVisitorTest, LogicalOrTrue) {
+    std::any result = evaluateExpression("0 || 1");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test logical OR (false case).
+TEST(CInterpreterVisitorTest, LogicalOrFalse) {
+    std::any result = evaluateExpression("0 || 0");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+
+// Test logical NOT (true case).
+TEST(CInterpreterVisitorTest, LogicalNotTrue) {
+    std::any result = evaluateExpression("!0");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test logical NOT (false case).
+TEST(CInterpreterVisitorTest, LogicalNotFalse) {
+    std::any result = evaluateExpression("!1");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+
+// ------------------- Compound Logical/Relational Tests -------------------
+
+// Test a compound logical expression.
+TEST(CInterpreterVisitorTest, CompoundLogicalExpression1) {
+    // Expression: "(3 < 5) && (3 == 3)" should yield true.
+    std::any result = evaluateExpression("(3 < 5) && (3 == 3)");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test another compound logical expression.
+TEST(CInterpreterVisitorTest, CompoundLogicalExpression2) {
+    // Expression: "(3 > 5) || (2 < 4)" should yield true.
+    std::any result = evaluateExpression("(3 > 5) || (2 < 4)");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+// Test a mixed compound expression.
+TEST(CInterpreterVisitorTest, ComplexExpressionMixed) {
+    // For example, "((2+3)*2) >= (10-1)" should yield true (1) because 10 >= 9.
+    std::any result = evaluateExpression("((2+3)*2) >= (10-1)");
+    int value = getValue<int>(result);
+    EXPECT_EQ(value, 1);
 }

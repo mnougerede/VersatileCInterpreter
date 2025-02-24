@@ -26,6 +26,16 @@ public:
     std::any visitCharLiteral(CParser::CharLiteralContext *ctx) override;
     std::any aggregateResult(std::any aggregate, std::any nextResult) override;
 
+    std::any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
+
+    std::any visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) override;
+
+    std::any visitEqualityExpression(CParser::EqualityExpressionContext *ctx) override;
+
+    std::any visitRelationalExpression(CParser::RelationalExpressionContext *ctx) override;
+
+    std::any visitLogicalNotExpression(CParser::LogicalNotExpressionContext *ctx) override;
+
 private:
     Environment* env;
 };

@@ -23,10 +23,10 @@ std::any CInterpreterVisitor::visitEvaluateExpression(CParser::EvaluateExpressio
 }
 
 std::any CInterpreterVisitor::visitAddSubExpression(CParser::AddSubExpressionContext *ctx) {
-    VarValue left = std::any_cast<VarValue>(visit(ctx->term(0))); // First term
+    VarValue left = std::any_cast<VarValue>(visit(ctx->multiplicativeExpression(0))); // First term
 
     for (size_t i = 0; i < ctx->addOp().size(); i++) {
-        VarValue right = std::any_cast<VarValue>(visit(ctx->term(i + 1))); // Next term
+        VarValue right = std::any_cast<VarValue>(visit(ctx->multiplicativeExpression(i + 1))); // Next term
         std::string op = ctx->addOp(i)->getText();
 
         // Use std::visit to perform the operation based on the actual type.
@@ -42,10 +42,10 @@ std::any CInterpreterVisitor::visitAddSubExpression(CParser::AddSubExpressionCon
     return std::any(left);
 }
 std::any CInterpreterVisitor::visitMulDivExpression(CParser::MulDivExpressionContext *ctx) {
-    VarValue left = std::any_cast<VarValue>(visit(ctx->factor(0)));
+    VarValue left = std::any_cast<VarValue>(visit(ctx->unaryExpression(0)));
 
     for (size_t i = 0; i < ctx->mulOp().size(); i++) {
-        VarValue right = std::any_cast<VarValue>(visit(ctx->factor(i + 1)));
+        VarValue right = std::any_cast<VarValue>(visit(ctx->unaryExpression(i + 1)));
         std::string op = ctx->mulOp(i)->getText();
 
         left = std::visit([op](auto a, auto b) -> VarValue {
@@ -63,7 +63,7 @@ std::any CInterpreterVisitor::visitMulDivExpression(CParser::MulDivExpressionCon
 }
 
 std::any CInterpreterVisitor::visitUnaryMinusExpression(CParser::UnaryMinusExpressionContext *ctx) {
-    VarValue value = std::any_cast<VarValue>(visit(ctx->factor()));
+    VarValue value = std::any_cast<VarValue>(visit(ctx->unaryExpression()));
     value = std::visit([](auto a) -> VarValue {
         return -a;
     }, value);
@@ -146,6 +146,31 @@ std::any CInterpreterVisitor::aggregateResult(std::any aggregate, std::any nextR
         return aggregate;
     }
     return nextResult;
+}
+
+std::any CInterpreterVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
+    //TODO: implement visitLogicalOrExpression
+    return CBaseVisitor::visitLogicalOrExpression(ctx);
+}
+
+std::any CInterpreterVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
+    //TODO: implement visitLogicalAndExpression
+    return CBaseVisitor::visitLogicalAndExpression(ctx);
+}
+
+std::any CInterpreterVisitor::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
+    //TODO: implement visitEqualityExpression
+    return CBaseVisitor::visitEqualityExpression(ctx);
+}
+
+std::any CInterpreterVisitor::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
+    //TODO: implement visitRelationalExpression
+    return CBaseVisitor::visitRelationalExpression(ctx);
+}
+
+std::any CInterpreterVisitor::visitLogicalNotExpression(CParser::LogicalNotExpressionContext *ctx) {
+    //TODO: implement visitLogicalNotExpression
+    return CBaseVisitor::visitLogicalNotExpression(ctx);
 }
 
 
