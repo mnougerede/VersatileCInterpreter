@@ -214,33 +214,7 @@ TEST(CInterpreterVisitorTest, NotEqualsFalse) {
 
 // ------------------- Logical Operators Tests -------------------
 
-// Test logical AND (true case).
-TEST(CInterpreterVisitorTest, LogicalAndTrue) {
-    std::any result = evaluateExpression("1 && 1");
-    int value = extractValue<int>(result);
-    EXPECT_EQ(value, 1);
-}
-
-// Test logical AND (false case).
-TEST(CInterpreterVisitorTest, LogicalAndFalse) {
-    std::any result = evaluateExpression("1 && 0");
-    int value = extractValue<int>(result);
-    EXPECT_EQ(value, 0);
-}
-
-// Test logical OR (true case).
-TEST(CInterpreterVisitorTest, LogicalOrTrue) {
-    std::any result = evaluateExpression("0 || 1");
-    int value = extractValue<int>(result);
-    EXPECT_EQ(value, 1);
-}
-
-// Test logical OR (false case).
-TEST(CInterpreterVisitorTest, LogicalOrFalse) {
-    std::any result = evaluateExpression("0 || 0");
-    int value = extractValue<int>(result);
-    EXPECT_EQ(value, 0);
-}
+// removed basic logical tests as they always pass (return last leaf)
 
 // Test logical NOT (true case).
 TEST(CInterpreterVisitorTest, LogicalNotTrue) {
@@ -254,6 +228,51 @@ TEST(CInterpreterVisitorTest, LogicalNotFalse) {
     std::any result = evaluateExpression("!1");
     int value = extractValue<int>(result);
     EXPECT_EQ(value, 0);
+}
+// ---------- Logical OR and AND with non-Boolean operands ----------
+
+TEST(CInterpreterVisitorTest, LogicalOrNonBooleanOperands) {
+    // "2 || 2" should yield 1 even though both operands are 2 (nonzero).
+    std::any result = evaluateExpression("2 || 2");
+    int value = extractValue<int>(result);
+    // If the visitor just returns the last child, it might return 2.
+    // So we expect 1 (true) if logical OR is properly implemented.
+    EXPECT_EQ(value, 1);
+}
+
+TEST(CInterpreterVisitorTest, LogicalAndNonBooleanOperands) {
+    // "2 && 2" should yield 1 (true) when both operands are nonzero.
+    std::any result = evaluateExpression("2 && 2");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+TEST(CInterpreterVisitorTest, LogicalOrMixedOperands) {
+    // "2 || 0" should yield 1 because at least one operand is true.
+    std::any result = evaluateExpression("2 || 0");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 1);
+}
+
+TEST(CInterpreterVisitorTest, LogicalAndMixedOperands) {
+    // "0 && 2" should yield 0 because one operand is false.
+    std::any result = evaluateExpression("0 && 2");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+TEST(CInterpreterVisitorTest, LogicalNotNonBoolean) {
+    // "!2" should yield 0 because 2 is nonzero (true), so its logical NOT is false (0).
+    std::any result = evaluateExpression("!2");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+TEST(CInterpreterVisitorTest, ComplexLogicalExpression) {
+    // Example: "((3 < 5) && (4 == 4)) || (2 > 3)"
+    // (3 < 5) is true (1) and (4 == 4) is true (1), so (1 && 1) is 1;
+    // (2 > 3) is false (0), so 1 || 0 should yield 1.
+    std::any result = evaluateExpression("((3 < 5) && (4 == 4)) || (2 > 3)");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 1);
 }
 
 // ------------------- Compound Logical/Relational Tests -------------------
