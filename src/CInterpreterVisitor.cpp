@@ -150,16 +150,39 @@ std::any CInterpreterVisitor::aggregateResult(std::any aggregate, std::any nextR
 
 std::any CInterpreterVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
     //TODO: implement visitLogicalOrExpression
-    return CBaseVisitor::visitLogicalOrExpression(ctx);
+    int result = std::any_cast<int>(visit(ctx->logicalAndExpression(0)));
+    // For each additional operand, perform logical OR.
+    for (size_t i = 1; i < ctx->logicalAndExpression().size(); ++i) {
+        int operand = std::any_cast<int>(visit(ctx->logicalAndExpression(i)));
+        // In C, any non-zero is true. If either operand is true, the result is true (1).
+        if (result != 0 || operand != 0) {
+            result = 1;
+        } else {
+            result = 0;
+        }
+    }
+    return std::any(result);
 }
 
 std::any CInterpreterVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
     //TODO: implement visitLogicalAndExpression
-    return CBaseVisitor::visitLogicalAndExpression(ctx);
+    int result = std::any_cast<int>(visit(ctx->equalityExpression(0)));
+    // For each additional operand, perform logical AND.
+    for (size_t i = 1; i < ctx->equalityExpression().size(); ++i) {
+        int operand = std::any_cast<int>(visit(ctx->equalityExpression(i)));
+        // For AND, if any operand is false (0), the result is false.
+        if (result == 0 || operand == 0) {
+            result = 0;
+        } else {
+            result = 1;
+        }
+    }
+    return std::any(result);
 }
 
 std::any CInterpreterVisitor::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
     //TODO: implement visitEqualityExpression
+    int resu
     return CBaseVisitor::visitEqualityExpression(ctx);
 }
 
