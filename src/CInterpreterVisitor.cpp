@@ -149,52 +149,120 @@ std::any CInterpreterVisitor::aggregateResult(std::any aggregate, std::any nextR
 }
 
 std::any CInterpreterVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
-    //TODO: implement visitLogicalOrExpression
-    int result = std::any_cast<int>(visit(ctx->logicalAndExpression(0)));
+    // Evaluate the first operand.
+    VarValue result = std::any_cast<VarValue>(visit(ctx->logicalAndExpression(0)));
+
     // For each additional operand, perform logical OR.
     for (size_t i = 1; i < ctx->logicalAndExpression().size(); ++i) {
-        int operand = std::any_cast<int>(visit(ctx->logicalAndExpression(i)));
-        // In C, any non-zero is true. If either operand is true, the result is true (1).
-        if (result != 0 || operand != 0) {
-            result = 1;
-        } else {
-            result = 0;
-        }
+        VarValue operand = std::any_cast<VarValue>(visit(ctx->logicalAndExpression(i)));
+
+        // Use std::visit to extract a Boolean (as int) from each VarValue.
+        int leftBool = std::visit([](auto v) -> int {
+            return (v != 0) ? 1 : 0;
+        }, result);
+        int rightBool = std::visit([](auto v) -> int {
+            return (v != 0) ? 1 : 0;
+        }, operand);
+
+        // Perform logical OR.
+        int combined = (leftBool || rightBool) ? 1 : 0;
+
+        // Store the result back as a VarValue (an int).
+        result = combined;
     }
     return std::any(result);
 }
 
 std::any CInterpreterVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
-    //TODO: implement visitLogicalAndExpression
-    int result = std::any_cast<int>(visit(ctx->equalityExpression(0)));
+    // Evaluate the first operand.
+    VarValue result = std::any_cast<VarValue>(visit(ctx->equalityExpression(0)));
+
     // For each additional operand, perform logical AND.
     for (size_t i = 1; i < ctx->equalityExpression().size(); ++i) {
-        int operand = std::any_cast<int>(visit(ctx->equalityExpression(i)));
-        // For AND, if any operand is false (0), the result is false.
-        if (result == 0 || operand == 0) {
-            result = 0;
-        } else {
-            result = 1;
-        }
+        VarValue operand = std::any_cast<VarValue>(visit(ctx->equalityExpression(i)));
+
+        int leftBool = std::visit([](auto v) -> int {
+            return (v != 0) ? 1 : 0;
+        }, result);
+        int rightBool = std::visit([](auto v) -> int {
+            return (v != 0) ? 1 : 0;
+        }, operand);
+
+        int combined = (leftBool && rightBool) ? 1 : 0;
+        result = combined;
     }
     return std::any(result);
 }
 
+
 std::any CInterpreterVisitor::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
-    //TODO: implement visitEqualityExpression
-    int resu
-    return CBaseVisitor::visitEqualityExpression(ctx);
+    // Evaluate the first relational expression.
+    VarValue left = std::any_cast<VarValue>(visit(ctx->relationalExpression(0)));
+
+    // Loop over each equality operator and the subsequent relational expression.
+    for (size_t i = 0; i < ctx->equalityOp().size(); ++i) {
+        VarValue right = std::any_cast<VarValue>(visit(ctx->relationalExpression(i + 1)));
+        std::string op = ctx->equalityOp(i)->getText();
+
+        left = std::visit([op](auto a, auto b) -> VarValue {
+            // Compare using the appropriate operator.
+            if (op == "==") {
+                return (a == b) ? 1 : 0;
+            } else if (op == "!=") {
+                return (a != b) ? 1 : 0;
+            } else {
+                throw std::runtime_error("Unknown equality operator: " + op);
+            }
+        }, left, right);
+    }
+    return std::any(left);
 }
+
 
 std::any CInterpreterVisitor::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
     //TODO: implement visitRelationalExpression
-    return CBaseVisitor::visitRelationalExpression(ctx);
+    VarValue left = std::any_cast<VarValue>(visit(ctx->additiveExpression(0)));
+
+    // For each relational operator and right-hand additive expression, apply the operator.
+    for (size_t i = 0; i < ctx->relationalOp().size(); ++i) {
+        VarValue right = std::any_cast<VarValue>(visit(ctx->additiveExpression(i + 1)));
+        std::string op = ctx->relationalOp(i)->getText();
+
+        // Use std::visit to evaluate the relational operation.
+        left = std::visit([op](auto a, auto b) -> VarValue {
+            using T = std::common_type_t<decltype(a), decltype(b)>;
+            if (op == "<") {
+                return (static_cast<T>(a) < static_cast<T>(b)) ? 1 : 0;
+            } else if (op == ">") {
+                return (static_cast<T>(a) > static_cast<T>(b)) ? 1 : 0;
+            } else if (op == "<=") {
+                return (static_cast<T>(a) <= static_cast<T>(b)) ? 1 : 0;
+            } else if (op == ">=") {
+                return (static_cast<T>(a) >= static_cast<T>(b)) ? 1 : 0;
+            } else {
+                throw std::runtime_error("Unknown relational operator: " + op);
+            }
+        }, left, right);
+    }
+
+    // Return the result wrapped in std::any.
+    return std::any(left);
 }
 
 std::any CInterpreterVisitor::visitLogicalNotExpression(CParser::LogicalNotExpressionContext *ctx) {
-    //TODO: implement visitLogicalNotExpression
-    return CBaseVisitor::visitLogicalNotExpression(ctx);
+    // Evaluate the operand of the '!' operator.
+    VarValue operand = std::any_cast<VarValue>(visit(ctx->unaryExpression()));
+
+    // Use std::visit to convert the operand to a Boolean value:
+    // If the operand is nonzero, logical NOT yields 0; if it is 0, logical NOT yields 1.
+    int boolResult = std::visit([](auto v) -> int {
+        return (v != 0) ? 0 : 1;
+    }, operand);
+
+    // Return the Boolean result wrapped in a VarValue.
+    return std::any(VarValue(boolResult));
 }
+
 
 std::any CInterpreterVisitor::visitAssignmentExpr(CParser::AssignmentExprContext *ctx) {
 
