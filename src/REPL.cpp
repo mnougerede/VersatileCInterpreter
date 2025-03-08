@@ -18,12 +18,12 @@ std::string anyToString(const std::any& value) {
                     return std::to_string(v);
                 }
             }, varVal);
-        // } else if (value.type() == typeid(int)) {
-        //     return std::to_string(std::any_cast<int>(value));
-        // } else if (value.type() == typeid(double)) {
-        //     return std::to_string(std::any_cast<double>(value));
-        // } else if (value.type() == typeid(char)) {
-        //     return std::string(1, std::any_cast<char>(value));
+        } else if (value.type() == typeid(int)) {
+            return std::to_string(std::any_cast<int>(value));
+        } else if (value.type() == typeid(double)) {
+            return std::to_string(std::any_cast<double>(value));
+        } else if (value.type() == typeid(char)) {
+            return std::string(1, std::any_cast<char>(value));
         } else if (value.has_value()) {
             return "[Unknown type]";
         } else {

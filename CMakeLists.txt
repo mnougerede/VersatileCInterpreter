@@ -28,6 +28,7 @@ add_executable(VersatileCInterpreter
         src/Environment.cpp
         src/Environment.h
         src/Variable.h
+        src/Utils.h
 )
 
 target_link_libraries(VersatileCInterpreter PRIVATE antlr4_static)

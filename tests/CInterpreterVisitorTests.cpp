@@ -385,12 +385,13 @@ TEST(CInterpreterVisitorTest, IfThenNoElseTrue) {
 }
 
 // Test an if statement without an else branch when the condition is false.
-// Here we assume that if no branch is executed, the visitor returns 0.
 TEST(CInterpreterVisitorTest, IfThenNoElseFalse) {
     std::any result = evaluateExpression("if (0) 10;");
-    int value = extractValue<int>(result);
-    EXPECT_EQ(value, 0);
+
+    // Expect that no branch was executed, and thus the result is empty.
+    EXPECT_FALSE(result.has_value());
 }
+
 
 // Test nested if-then-else expressions.
 TEST(CInterpreterVisitorTest, NestedIfThenElse) {

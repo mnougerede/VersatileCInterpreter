@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "Utils.h"
+
 // Constructor definition
 CInterpreterVisitor::CInterpreterVisitor(Environment* environment)
     : env(environment) {
@@ -350,7 +352,17 @@ std::any CInterpreterVisitor::visitAssignmentExpr(CParser::AssignmentExprContext
 }
 
 std::any CInterpreterVisitor::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
-    return CBaseVisitor::visitIfElseStatement(ctx);
+    VarValue condVar = std::any_cast<VarValue>(visit(ctx->expression()));
+    bool conditionTrue = convertToBool(condVar);  // Convert your VarValue to bool.
+
+    if (conditionTrue) {
+        // Evaluate and return the value from the 'then' branch.
+        return visit(ctx->statement(0));
+    } else if (ctx->ELSE() != nullptr) {
+        // Evaluate and return the value from the 'else' branch.
+        return visit(ctx->statement(1));
+    }
+    return std::any();
 }
 
 
