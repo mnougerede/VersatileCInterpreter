@@ -45,13 +45,32 @@ declaration
 declarator
     : IDENTIFIER
     ;
+iterationStatement
+    : WHILE '(' expression ')' statement                        #WhileStatement
+    | DO statement WHILE '(' expression ')' ';'                  #DoWhileStatement
+    | FOR '(' forCondition ')' statement                         #ForStatement
+    ;
+// A for loop header can either start with a declaration or an optional expression.
+forCondition
+    : (forDeclaration | expression?) ';' forExpression? ';' forExpression?
+    ;
 
+// For the case where you declare a variable.
+forDeclaration
+    : typeSpecifier declarator ('=' expression)?
+    ;
+
+// The expression parts can be a list of expressions separated by commas.
+forExpression
+    : assignmentExpression (',' assignmentExpression)*
+    ;
 // A statement can be an expression statement or a compound statement - others to be added as needed.
 statement
     : expressionStatement
     | compoundStatement
     | declaration
     | selectionStatement
+    | iterationStatement
     ;
 
 // An expression statement is an expression followed by a semicolon. It may be empty.
@@ -134,6 +153,10 @@ literal
 
 
 // Tokens
+WHILE : 'while';
+DO    : 'do';
+FOR   : 'for';
+
 IF          : 'if';
 ELSE        : 'else';
 SWITCH      : 'switch';
