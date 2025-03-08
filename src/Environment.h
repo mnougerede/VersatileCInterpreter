@@ -13,13 +13,20 @@ public:
     Environment(Environment* parentEnv = nullptr);
 
     // Set a variable in the current scope.
-    void set(const std::string &name, VarType type, const std::variant<int, double, char> value);
+    void define(const std::string &name, VarType type, const std::variant<int, double, char> value);
+
+    void assign(const std::string &name, VarType type, const std::variant<int, double, char>& value);
 
     // Get a variable's value, checking outer scopes if needed.
     Variable get(const std::string &name) const;
 
     // Check if a variable exists in this scope or outer scopes.
     bool exists(const std::string &name) const;
+
+    // pushScope returns a pointer to the new environment (child scope).
+    Environment* pushScope();
+    // popScope returns the parent environment (exiting the current scope).
+    Environment* popScope();
 
 private:
     std::unordered_map<std::string, Variable> variables;

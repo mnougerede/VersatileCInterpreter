@@ -19,6 +19,8 @@ CInterpreterVisitor::~CInterpreterVisitor() {
     // Any cleanup if needed
 }
 
+#define LOG(x) std::clog << x << std::endl;
+
 std::any CInterpreterVisitor::visitEvaluateExpression(CParser::EvaluateExpressionContext *ctx) {
     return visit(ctx->expression());
 }
@@ -78,43 +80,11 @@ std::any CInterpreterVisitor::visitVariableReference(CParser::VariableReferenceC
 }
 
 std::any CInterpreterVisitor::visitDeclareVariable(CParser::DeclareVariableContext *ctx) {
-    std::string varName = ctx->declarator()->getText();
-    std::string typeStr = ctx->typeSpecifier()->getText();
-    VarType varType;
-    if (typeStr == "int") {
-        varType = VarType::INT;
-    } else if (typeStr == "float") {
-        varType = VarType::FLOAT;  // Treating float as double for storage.
-    } else if (typeStr == "double") {
-        varType = VarType::DOUBLE;
-    } else if (typeStr == "char") {
-        varType = VarType::CHAR;
-    } else if (typeStr == "void") {
-        throw std::runtime_error("Cannot declare variable of type void");
-    } else {
-        throw std::runtime_error("Unknown type: " + typeStr);
-    }
-
-    // Evaluate the initializer if provided.
-    VarValue varValue;
-    if (ctx->expression()) {
-        std::any initResult = visit(ctx->expression());
-        varValue = std::any_cast<VarValue>(initResult);
-    } else {
-        // Default initialization.
-        if (varType == VarType::INT) {
-            varValue = 0;
-        } else if (varType == VarType::FLOAT || varType == VarType::DOUBLE) {
-            varValue = 0.0;
-        } else if (varType == VarType::CHAR) {
-            varValue = '\0';
-        }
-    }
-
-    env->set(varName, varType, varValue);
-
-    return varValue;
+    // Use the helper function to process the declaration.
+    VarValue value = processDeclaration(ctx->typeSpecifier(), ctx->declarator(), ctx->expression());
+    return value;
 }
+
 
 std::any CInterpreterVisitor::visitNumberLiteral(CParser::NumberLiteralContext *ctx) {
     // Get the number literal text.
@@ -346,7 +316,7 @@ std::any CInterpreterVisitor::visitAssignmentExpr(CParser::AssignmentExprContext
     } else {
         throw std::runtime_error("Unsupported variable type for assignment");
     }
-    env->set(varName, varType, newValue);
+    env->assign(varName, varType, newValue);
 
     return std::any(newValue);
 }
@@ -365,11 +335,202 @@ std::any CInterpreterVisitor::visitIfElseStatement(CParser::IfElseStatementConte
     return std::any();
 }
 
+std::any CInterpreterVisitor::visitWhileStatement(CParser::WhileStatementContext *ctx) {
+    // Evaluate the condition expression and convert to bool.
+    while (convertToBool(std::any_cast<VarValue>(visit(ctx->expression())))) {
+        // Execute the loop body.
+        visit(ctx->statement());
+    }
+    // Return an empty std::any since the loop itself produces no value.
+    return std::any();
+}
+
+std::any CInterpreterVisitor::visitDoWhileStatement(CParser::DoWhileStatementContext *ctx) {
+    do {
+        visit(ctx->statement());
+    } while (convertToBool(std::any_cast<VarValue>(visit(ctx->expression()))));
+    return std::any();
+}
+
+std::any CInterpreterVisitor::visitForStatement(CParser::ForStatementContext *ctx) {
+    LOG("Entering for loop.");
+    // Push a new scope for the for loop.
+    Environment* loopEnv = env->pushScope();
+    Environment* previousEnv = env;
+    env = loopEnv;
+    LOG("New loop scope pushed.");
+
+    // Get the forLoop components.
+    ForLoopComponents comps = std::any_cast<ForLoopComponents>(visit(ctx->forCondition()));
+
+    // --- Initializer ---
+    if (comps.initializer.has_value()) {
+        if (comps.initializer.type() == typeid(CParser::ForDeclarationContext*)) {
+            auto declCtx = std::any_cast<CParser::ForDeclarationContext*>(comps.initializer);
+            LOG("Running for loop initializer (declaration): " << declCtx->getText());
+            visit(declCtx);
+        } else if (comps.initializer.type() == typeid(CParser::ExpressionContext*)) {
+            auto exprCtx = std::any_cast<CParser::ExpressionContext*>(comps.initializer);
+            LOG("Running for loop initializer (expression): " << exprCtx->getText());
+            visit(exprCtx);
+        } else {
+            LOG("Unknown initializer type.");
+        }
+    } else {
+        LOG("No initializer provided.");
+    }
+
+
+    // --- Condition ---
+    bool condition = true;
+    if (comps.condition.has_value()) {
+        // Check if the condition is stored as a pointer.
+        if (auto condCtx = std::any_cast<CParser::ForConditionExpressionContext*>(comps.condition); condCtx != nullptr) {
+            std::any condResult = visit(condCtx);
+            condition = convertToBool(std::any_cast<VarValue>(condResult));
+            LOG("Initial condition evaluated from expression: " << (condition ? "true" : "false"));
+        } else {
+            // Otherwise, assume it's an explicit VarValue.
+            condition = convertToBool(std::any_cast<VarValue>(comps.condition));
+            LOG("Initial condition evaluated as explicit true value: " << (condition ? "true" : "false"));
+        }
+    } else {
+        condition = true;
+        LOG("No condition provided; defaulting to true.");
+    }
+
+    // --- Loop Body and Update ---
+    while (condition) {
+        LOG("Loop iteration begins. Condition is true.");
+        // Execute the loop body.
+        visit(ctx->statement());
+
+        // Process the update part, if provided.
+        if (comps.update.has_value()) {
+            if (auto updateCtx = std::any_cast<CParser::ForUpdateExpressionContext*>(comps.update); updateCtx != nullptr) {
+                LOG("Executing update expression: " << updateCtx->getText());
+                visit(updateCtx);
+            }
+        } else {
+            LOG("No update expression provided.");
+        }
+
+        // Reevaluate the condition.
+        if (comps.condition.has_value()) {
+            if (auto condCtx = std::any_cast<CParser::ForConditionExpressionContext*>(comps.condition); condCtx != nullptr) {
+                std::any condResult = visit(condCtx);
+                condition = convertToBool(std::any_cast<VarValue>(condResult));
+                LOG("Reevaluated condition from expression: " << (condition ? "true" : "false"));
+            } else {
+                condition = convertToBool(std::any_cast<VarValue>(comps.condition));
+                LOG("Reevaluated condition from explicit value: " << (condition ? "true" : "false"));
+            }
+        } else {
+            condition = true;
+            LOG("No condition; defaulting to true.");
+        }
+    }
+    LOG("For loop finished; condition is false. Exiting loop.");
+
+    // Pop the scope when done.
+    env = env->popScope();
+    delete loopEnv; // or handle via smart pointers
+    LOG("Loop scope popped. Exiting for loop.");
+
+    // The for loop itself does not produce a meaningful value.
+    return std::any();
+}
+
+std::any CInterpreterVisitor::visitForCondition(CParser::ForConditionContext *ctx) {
+    LOG("Entered visitForCondition.");
+    ForLoopComponents comps;
+
+    // Initializer: either a forDeclaration or an expression.
+    if (ctx->forDeclaration() != nullptr) {
+        comps.initializer = static_cast<CParser::ForDeclarationContext*>(ctx->forDeclaration());
+    } else if (ctx->expression() != nullptr) {
+        comps.initializer = static_cast<CParser::ExpressionContext*>(ctx->expression());
+    } else {
+        comps.initializer = std::any();
+    }
+
+    // Condition: store pointer if provided; otherwise, store an explicit true value.
+    if (ctx->forConditionExpression() != nullptr) {
+        comps.condition = static_cast<CParser::ForConditionExpressionContext*>(ctx->forConditionExpression());
+    } else {
+        // Wrap an explicit true value (assuming VarValue(1) means true).
+        comps.condition = VarValue(1);
+    }
+
+    // Update: store pointer if provided.
+    if (ctx->forUpdateExpression() != nullptr) {
+        comps.update = static_cast<CParser::ForUpdateExpressionContext*>(ctx->forUpdateExpression());
+    } else {
+        comps.update = std::any();
+    }
+    LOG("Exiting visitForCondition with components: "
+            << "Initializer: " << (comps.initializer.has_value() ? "set" : "empty")
+            << ", Condition: " << (comps.condition.has_value() ? "set" : "empty")
+            << ", Update: " << (comps.update.has_value() ? "set" : "empty"));
+    return comps;
+}
+
+std::any CInterpreterVisitor::visitForDeclaration(CParser::ForDeclarationContext *ctx) {
+    VarValue value = processDeclaration(ctx->typeSpecifier(), ctx->declarator(), ctx->expression());
+    return value;
+}
+
+
+
+
 
 std::any CInterpreterVisitor::visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) {
     return visit(ctx->expression());
 }
 
 
+VarValue CInterpreterVisitor::processDeclaration(CParser::TypeSpecifierContext* typeCtx,
+                                                   CParser::DeclaratorContext* declCtx,
+                                                   CParser::ExpressionContext* exprCtx) {
+    // Get variable name and type string.
+    std::string varName = declCtx->getText();
+    std::string typeStr = typeCtx->getText();
+    VarType varType;
+
+    // Determine the variable type.
+    if (typeStr == "int") {
+        varType = VarType::INT;
+    } else if (typeStr == "float") {
+        varType = VarType::FLOAT;
+    } else if (typeStr == "double") {
+        varType = VarType::DOUBLE;
+    } else if (typeStr == "char") {
+        varType = VarType::CHAR;
+    } else if (typeStr == "void") {
+        throw std::runtime_error("Cannot declare variable of type void");
+    } else {
+        throw std::runtime_error("Unknown type: " + typeStr);
+    }
+
+    // Evaluate the initializer expression if provided.
+    VarValue varValue;
+    if (exprCtx != nullptr) {
+        std::any initResult = visit(exprCtx);
+        varValue = std::any_cast<VarValue>(initResult);
+    } else {
+        // Default initialization based on type.
+        if (varType == VarType::INT) {
+            varValue = 0;
+        } else if (varType == VarType::FLOAT || varType == VarType::DOUBLE) {
+            varValue = 0.0;
+        } else if (varType == VarType::CHAR) {
+            varValue = '\0';
+        }
+    }
+
+    // Add the variable to the current environment.
+    env->define(varName, varType, varValue);
+    return varValue;
+}
 
 

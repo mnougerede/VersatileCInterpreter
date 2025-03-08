@@ -15,10 +15,21 @@ public:
     CInterpreterVisitor(Environment* env);
     virtual ~CInterpreterVisitor();
 
+    // Helper struct for for-loop components.
+    struct ForLoopComponents {
+        std::any initializer;
+        std::any condition;
+        std::any update;
+    };
+
     std::any visitEvaluateExpression(CParser::EvaluateExpressionContext *ctx) override;
     std::any visitAddSubExpression(CParser::AddSubExpressionContext *ctx) override;
     std::any visitMulDivExpression(CParser::MulDivExpressionContext *ctx) override;
     std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
+
+    VarValue processDeclaration(CParser::TypeSpecifierContext *typeCtx, CParser::DeclaratorContext *declCtx,
+                                CParser::ExpressionContext *exprCtx);
+
     std::any visitUnaryMinusExpression(CParser::UnaryMinusExpressionContext *ctx) override;
     std::any visitVariableReference(CParser::VariableReferenceContext *ctx) override;
     std::any visitDeclareVariable(CParser::DeclareVariableContext *ctx) override;
@@ -39,6 +50,18 @@ public:
     std::any visitAssignmentExpr(CParser::AssignmentExprContext *ctx) override;
 
     std::any visitIfElseStatement(CParser::IfElseStatementContext *ctx) override;
+
+    std::any visitWhileStatement(CParser::WhileStatementContext *ctx) override;
+
+    std::any visitDoWhileStatement(CParser::DoWhileStatementContext *ctx) override;
+
+    std::any visitForStatement(CParser::ForStatementContext *ctx) override;
+
+    std::any visitForCondition(CParser::ForConditionContext *ctx) override;
+
+    std::any visitForDeclaration(CParser::ForDeclarationContext *ctx) override;
+
+
 
 private:
     Environment* env;

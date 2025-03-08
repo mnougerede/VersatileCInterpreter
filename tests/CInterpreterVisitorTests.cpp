@@ -408,3 +408,49 @@ TEST(CInterpreterVisitorTest, ComplexIfCondition) {
     int value = extractValue<int>(result);
     EXPECT_EQ(value, 100);
 }
+
+// -------------------- Iteration Tests --------------------
+// Test a while loop that increments a variable from 0 to 5.
+TEST(CInterpreterVisitorTest, WhileLoopTest) {
+    // The code declares 'i', then runs a while loop until i is 5, then returns i.
+    std::any result = evaluateExpression("int i = 0; while(i < 5) { i = i + 1; } i;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 5);
+}
+
+// Test a do-while loop that increments a variable from 0 to 5.
+TEST(CInterpreterVisitorTest, DoWhileLoopTest) {
+    // The code declares 'i', then runs a do-while loop until i is 5, then returns i.
+    std::any result = evaluateExpression("int i = 0; do { i = i + 1; } while(i < 5); i;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 5);
+}
+
+// Test a for loop with a declaration in the initializer that calculates a sum.
+TEST(CInterpreterVisitorTest, ForLoopWithDeclarationTest) {
+    // The code declares 'sum' and a loop variable 'i' in the for loop.
+    // The loop adds i to sum for i = 0 to 4, then returns sum.
+    std::any result = evaluateExpression(
+        "int sum = 0; "
+        "for (int i = 0; i < 5; i = i + 1) { "
+        "    sum = sum + i; "
+        "} "
+        "sum;"
+    );
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 10);  // 0 + 1 + 2 + 3 + 4 = 10
+}
+
+// Test a for loop with an expression initializer that increments a variable.
+TEST(CInterpreterVisitorTest, ForLoopWithExpressionInitializerTest) {
+    // Here, 'i' is declared before the loop and then set via the for loop's initializer.
+    std::any result = evaluateExpression(
+        "int i = 0; "
+        "for (i = 0; i < 5; i = i + 1) { "
+        "    /* empty body */ "
+        "} "
+        "i;"
+    );
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 5);
+}

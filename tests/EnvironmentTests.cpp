@@ -6,7 +6,7 @@
 TEST(EnvironmentTest, SetAndGetGlobalVariable) {
     Environment globalEnv;
     // Set a variable named "x" of type INT with value 42.
-    globalEnv.set("x", VarType::INT, 42);
+    globalEnv.define("x", VarType::INT, 42);
 
     // Get the variable and check its value.
     Variable var = globalEnv.get("x");
@@ -18,7 +18,7 @@ TEST(EnvironmentTest, SetAndGetGlobalVariable) {
 // Test that exists() returns true for defined variables and false for undefined.
 TEST(EnvironmentTest, VariableExists) {
     Environment globalEnv;
-    globalEnv.set("y", VarType::DOUBLE, 3.14);
+    globalEnv.define("y", VarType::DOUBLE, 3.14);
 
     EXPECT_TRUE(globalEnv.exists("y"));
     EXPECT_FALSE(globalEnv.exists("z"));
@@ -27,7 +27,7 @@ TEST(EnvironmentTest, VariableExists) {
 // Test that a nested environment inherits variables from its parent.
 TEST(EnvironmentTest, NestedEnvironmentInheritance) {
     Environment globalEnv;
-    globalEnv.set("a", VarType::INT, 100);
+    globalEnv.define("a", VarType::INT, 100);
 
     // Create a nested environment with globalEnv as parent.
     Environment localEnv(&globalEnv);
@@ -40,11 +40,11 @@ TEST(EnvironmentTest, NestedEnvironmentInheritance) {
 // Test that a variable set in a nested environment shadows the parent.
 TEST(EnvironmentTest, NestedEnvironmentShadowing) {
     Environment globalEnv;
-    globalEnv.set("b", VarType::INT, 10);
+    globalEnv.define("b", VarType::INT, 10);
 
     Environment localEnv(&globalEnv);
     // Set a variable "b" in the local environment with a different value.
-    localEnv.set("b", VarType::INT, 20);
+    localEnv.define("b", VarType::INT, 20);
 
     // Lookup "b" in local environment should return the local value.
     Variable localVar = localEnv.get("b");

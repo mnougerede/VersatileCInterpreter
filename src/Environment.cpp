@@ -7,8 +7,20 @@
 Environment::Environment(Environment *parentEnv)
     : parent(parentEnv) {}
 
-void Environment::set(const std::string &name, VarType type, const std::variant<int, double, char> value) {
+void Environment::define(const std::string &name, VarType type, const std::variant<int, double, char> value) {
     variables[name] = {type, value};
+}
+
+void Environment::assign(const std::string &name, VarType type, const std::variant<int, double, char>& value) {
+    // Check if the variable exists in this scope.
+    if (variables.find(name) != variables.end()) {
+        variables[name] = {type, value};
+    } else if (parent != nullptr) {
+        // Recurse into the parent environment.
+        parent->assign(name, type, value);
+    } else {
+        throw std::runtime_error("Undefined variable: " + name);
+    }
 }
 
 Variable Environment::get(const std::string &name) const {
@@ -27,4 +39,15 @@ bool Environment::exists(const std::string &name) const {
     if (parent != nullptr)
         return parent->exists(name);
     return false;
+}
+Environment* Environment::pushScope() {
+    // Create a new Environment with this as the parent.
+    return new Environment(this);
+}
+
+Environment* Environment::popScope() {
+    // When popping, simply return the parent pointer.
+    // Memory management is something you'll need to handle carefully
+    // (consider using smart pointers).
+    return parent;
 }

@@ -52,7 +52,7 @@ iterationStatement
     ;
 // A for loop header can either start with a declaration or an optional expression.
 forCondition
-    : (forDeclaration | expression?) ';' forExpression? ';' forExpression?
+    : (forDeclaration | expression?) ';' forConditionExpression? ';' forUpdateExpression?
     ;
 
 // For the case where you declare a variable.
@@ -61,9 +61,11 @@ forDeclaration
     ;
 
 // The expression parts can be a list of expressions separated by commas.
-forExpression
-    : assignmentExpression (',' assignmentExpression)*
-    ;
+forConditionExpression
+    : assignmentExpression (',' assignmentExpression)*;
+// The expression parts can be a list of expressions separated by commas.
+forUpdateExpression
+    : assignmentExpression (',' assignmentExpression)*;
 // A statement can be an expression statement or a compound statement - others to be added as needed.
 statement
     : expressionStatement
@@ -183,7 +185,15 @@ IDENTIFIER  : [a-zA-Z_][a-zA-Z0-9_]* ;
 Number
     : [0-9]+ ('.' [0-9]+)?                 // Integer or floating-point number
     ;
+// Single-line C++ style comment.
+LINE_COMMENT
+    : '//' ~[\r\n]* -> skip
+    ;
 
+// Multi-line C style comment.
+BLOCK_COMMENT
+    : '/*' .*? '*/' -> skip
+    ;
 // Ignore whitespace
 WHITESPACE
     : [ \t\r\n]+ -> skip
