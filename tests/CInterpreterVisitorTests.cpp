@@ -358,3 +358,52 @@ TEST(CInterpreterVisitorTest, MultipleAssignments) {
     int value = extractValue<int>(result);
     EXPECT_EQ(value, 9);
 }
+// -------------------- If-Then-Else Expression Tests --------------------
+
+// Test an if-then-else expression where the condition is true.
+TEST(CInterpreterVisitorTest, IfThenElseTrue) {
+    // Expression: if (1) 42; else 0; should yield 42.
+    std::any result = evaluateExpression("if (1) 42; else 0;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 42);
+}
+
+// Test an if-then-else expression where the condition is false.
+TEST(CInterpreterVisitorTest, IfThenElseFalse) {
+    // Expression: if (0) 42; else 10; should yield 10.
+    std::any result = evaluateExpression("if (0) 42; else 10;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 10);
+}
+
+// Test an if statement without an else branch when the condition is true.
+TEST(CInterpreterVisitorTest, IfThenNoElseTrue) {
+    // Expression: if (1) 10; should yield 10.
+    std::any result = evaluateExpression("if (1) 10;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 10);
+}
+
+// Test an if statement without an else branch when the condition is false.
+// Here we assume that if no branch is executed, the visitor returns 0.
+TEST(CInterpreterVisitorTest, IfThenNoElseFalse) {
+    std::any result = evaluateExpression("if (0) 10;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 0);
+}
+
+// Test nested if-then-else expressions.
+TEST(CInterpreterVisitorTest, NestedIfThenElse) {
+    // Expression: if (1) { if (0) 5; else 7; } else 0; should yield 7.
+    std::any result = evaluateExpression("if (1) { if (0) 5; else 7; } else 0;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 7);
+}
+
+// Test a compound if condition.
+TEST(CInterpreterVisitorTest, ComplexIfCondition) {
+    // Expression: if ((2 + 3) == 5) 100; else 200; should yield 100.
+    std::any result = evaluateExpression("if ((2 + 3) == 5) 100; else 200;");
+    int value = extractValue<int>(result);
+    EXPECT_EQ(value, 100);
+}

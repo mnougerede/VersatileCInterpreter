@@ -59,8 +59,8 @@ expressionStatement
     : expression? ';'
     ;
 selectionStatement
-    : IF '(' expression ')' statement (ELSE statement)?
-    | SWITCH '(' expression ')' statement
+    : IF '(' expression ')' statement (ELSE statement)?         #IfElseStatement
+    | SWITCH '(' expression ')' statement                       #SwitchStatment
     ;
 // Define expressions using operator precedence
 

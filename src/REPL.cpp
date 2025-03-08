@@ -7,16 +7,23 @@
 std::string anyToString(const std::any& value) {
     try {
         if (value.type() == typeid(VarValue)) {
-            VarValue num = std::any_cast<VarValue>(value);
-            return std::visit([](auto v) -> std::string {
-                return std::to_string(v);
-            }, num);
-        } else if (value.type() == typeid(int)) {
-            return std::to_string(std::any_cast<int>(value));
-        } else if (value.type() == typeid(double)) {
-            return std::to_string(std::any_cast<double>(value));
-        } else if (value.type() == typeid(char)) {
-            return std::string(1, std::any_cast<char>(value));
+            VarValue varVal = std::any_cast<VarValue>(value);
+            return std::visit([](auto&& v) -> std::string {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, std::monostate>) {
+                    return "void";
+                } else if constexpr (std::is_same_v<T, char>) {
+                    return std::string(1, v);
+                } else {
+                    return std::to_string(v);
+                }
+            }, varVal);
+        // } else if (value.type() == typeid(int)) {
+        //     return std::to_string(std::any_cast<int>(value));
+        // } else if (value.type() == typeid(double)) {
+        //     return std::to_string(std::any_cast<double>(value));
+        // } else if (value.type() == typeid(char)) {
+        //     return std::string(1, std::any_cast<char>(value));
         } else if (value.has_value()) {
             return "[Unknown type]";
         } else {

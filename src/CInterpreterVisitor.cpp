@@ -18,8 +18,7 @@ CInterpreterVisitor::~CInterpreterVisitor() {
 }
 
 std::any CInterpreterVisitor::visitEvaluateExpression(CParser::EvaluateExpressionContext *ctx) {
-    std::any result = visit(ctx->expression());
-    return result;
+    return visit(ctx->expression());
 }
 
 std::any CInterpreterVisitor::visitAddSubExpression(CParser::AddSubExpressionContext *ctx) {
@@ -83,7 +82,6 @@ std::any CInterpreterVisitor::visitDeclareVariable(CParser::DeclareVariableConte
     if (typeStr == "int") {
         varType = VarType::INT;
     } else if (typeStr == "float") {
-        //TODO ?? implement float type ??
         varType = VarType::FLOAT;  // Treating float as double for storage.
     } else if (typeStr == "double") {
         varType = VarType::DOUBLE;
@@ -220,7 +218,6 @@ std::any CInterpreterVisitor::visitEqualityExpression(CParser::EqualityExpressio
 
 
 std::any CInterpreterVisitor::visitRelationalExpression(CParser::RelationalExpressionContext *ctx) {
-    //TODO: implement visitRelationalExpression
     VarValue left = std::any_cast<VarValue>(visit(ctx->additiveExpression(0)));
 
     // For each relational operator and right-hand additive expression, apply the operator.
@@ -350,6 +347,10 @@ std::any CInterpreterVisitor::visitAssignmentExpr(CParser::AssignmentExprContext
     env->set(varName, varType, newValue);
 
     return std::any(newValue);
+}
+
+std::any CInterpreterVisitor::visitIfElseStatement(CParser::IfElseStatementContext *ctx) {
+    return CBaseVisitor::visitIfElseStatement(ctx);
 }
 
 

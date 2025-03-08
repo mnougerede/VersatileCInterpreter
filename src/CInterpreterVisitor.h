@@ -38,6 +38,8 @@ public:
 
     std::any visitAssignmentExpr(CParser::AssignmentExprContext *ctx) override;
 
+    std::any visitIfElseStatement(CParser::IfElseStatementContext *ctx) override;
+
 private:
     Environment* env;
 };
