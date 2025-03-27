@@ -4,21 +4,9 @@
 #include <typeinfo>
 #include "Variable.h"
 // Helper function to convert std::any to a string
-std::string anyToString(const std::any& value) {
+std::string anyToString(const std::any &value) {
     try {
-        if (value.type() == typeid(VarValue)) {
-            VarValue varVal = std::any_cast<VarValue>(value);
-            return std::visit([](auto&& v) -> std::string {
-                using T = std::decay_t<decltype(v)>;
-                if constexpr (std::is_same_v<T, std::monostate>) {
-                    return "void";
-                } else if constexpr (std::is_same_v<T, char>) {
-                    return std::string(1, v);
-                } else {
-                    return std::to_string(v);
-                }
-            }, varVal);
-        } else if (value.type() == typeid(int)) {
+        if (value.type() == typeid(int)) {
             return std::to_string(std::any_cast<int>(value));
         } else if (value.type() == typeid(double)) {
             return std::to_string(std::any_cast<double>(value));
@@ -29,7 +17,7 @@ std::string anyToString(const std::any& value) {
         } else {
             return "[No value]";
         }
-    } catch (const std::bad_any_cast&) {
+    } catch (const std::bad_any_cast &) {
         return "[Type conversion error]";
     }
 }
@@ -67,13 +55,21 @@ void REPL::run(std::istream &in, std::ostream &out, bool testMode) {
             } else {
                 out << output << "\n\n> ";
             }
-        }
-        catch (const std::exception &e) {
+        } catch (const std::exception &e) {
             if (testMode) {
                 out << "Error: " << e.what();
             } else {
                 out << "Error: " << e.what() << "\n\n> ";
             }
         }
+    }
+}
+// Evaluate a single command
+std::string REPL::evaluateCommand(const std::string &input) {
+    try {
+        std::any result = interpreter.evaluate(input);
+        return anyToString(result);
+    } catch (const std::exception &e) {
+        return std::string("Error: ") + e.what();
     }
 }
