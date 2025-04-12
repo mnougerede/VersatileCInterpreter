@@ -14,7 +14,12 @@ private:
     // Internal state for the REPL window.
     std::string replOutput;
     char replInput[512];
-    // You can also hold an instance of your REPL for evaluation
+
+    // State for the file execution window.
+    char fileCodeBuffer[1024 * 16];
+    std::string fileOutput;
+
+    // Instance of your REPL for evaluation
     REPL repl;
 
     // Initialization & cleanup helper methods.

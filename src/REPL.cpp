@@ -2,25 +2,10 @@
 #include <exception>
 #include <any>
 #include <typeinfo>
+
+#include "Utils.h"
 #include "Variable.h"
-// Helper function to convert std::any to a string
-std::string anyToString(const std::any &value) {
-    try {
-        if (value.type() == typeid(int)) {
-            return std::to_string(std::any_cast<int>(value));
-        } else if (value.type() == typeid(double)) {
-            return std::to_string(std::any_cast<double>(value));
-        } else if (value.type() == typeid(char)) {
-            return std::string(1, std::any_cast<char>(value));
-        } else if (value.has_value()) {
-            return "[Unknown type]";
-        } else {
-            return "[No value]";
-        }
-    } catch (const std::bad_any_cast &) {
-        return "[Type conversion error]";
-    }
-}
+
 
 // Original run() using std::cin and std::cout.
 void REPL::run() {
@@ -45,7 +30,7 @@ void REPL::run(std::istream &in, std::ostream &out, bool testMode) {
 
         try {
             // Evaluate the input using the interpreter.
-            std::any result = interpreter.evaluate(input);
+            std::any result = interpreter.evaluate(input, false);
 
             // Convert result to a string using the helper function.
             std::string output = anyToString(result);
@@ -67,7 +52,7 @@ void REPL::run(std::istream &in, std::ostream &out, bool testMode) {
 // Evaluate a single command
 std::string REPL::evaluateCommand(const std::string &input) {
     try {
-        std::any result = interpreter.evaluate(input);
+        std::any result = interpreter.evaluate(input, false);
         return anyToString(result);
     } catch (const std::exception &e) {
         return std::string("Error: ") + e.what();

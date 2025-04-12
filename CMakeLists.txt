@@ -59,6 +59,7 @@ add_executable(VersatileCInterpreter
         src/ConsoleReplUI.h
         src/ImGuiReplUI.cpp
         src/ImGuiReplUI.h
+        src/Utils.cpp
 )
 
 target_link_libraries(VersatileCInterpreter PRIVATE

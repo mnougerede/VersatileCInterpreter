@@ -7,9 +7,13 @@
 #include <iostream>
 #include <string>
 
+#include "Utils.h"
+
 ImGuiReplUI::ImGuiReplUI() {
     replOutput = "";
     replInput[0] = '\0';
+    fileOutput = "";
+    fileCodeBuffer[0] = '\0';
 }
 
 ImGuiReplUI::~ImGuiReplUI() {
@@ -37,9 +41,9 @@ void ImGuiReplUI::run() {
         return;
     }
 
-    GLFWwindow* window = glfwCreateWindow(1280, 720, "REPL Terminal", nullptr, nullptr);
+    GLFWwindow *window = glfwCreateWindow(1280, 720, "REPL Terminal", nullptr, nullptr);
     if (!window) {
-        const char* errorDesc = "";
+        const char *errorDesc = "";
         glfwGetError(&errorDesc);
         std::cerr << "Failed to create GLFW window: " << errorDesc << "\n";
         glfwTerminate();
@@ -50,7 +54,8 @@ void ImGuiReplUI::run() {
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO(); (void)io;
+    ImGuiIO &io = ImGui::GetIO();
+    (void) io;
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 150");
@@ -75,7 +80,8 @@ void ImGuiReplUI::run() {
             ImGui::SetScrollHereY(1.0f);
         ImGui::EndChild();
 
-        bool inputSubmitted = ImGui::InputText("Input", replInput, IM_ARRAYSIZE(replInput), ImGuiInputTextFlags_EnterReturnsTrue);
+        bool inputSubmitted = ImGui::InputText("Input", replInput, IM_ARRAYSIZE(replInput),
+                                               ImGuiInputTextFlags_EnterReturnsTrue);
 
         // On the very first frame, immediately set keyboard focus on the input widget.
 
@@ -96,8 +102,35 @@ void ImGuiReplUI::run() {
             // Optionally, refocus the input for subsequent frames:
             ImGui::SetKeyboardFocusHere(-1);
         }
-        ImGui::End();
+        ImGui::End(); // End REPL Terminal Window
 
+        // Begin File Execution Window
+        ImGui::Begin("File Execution");
+
+        // Source Code Editor: A large multiline text box.
+        ImGui::InputTextMultiline("Source Code", fileCodeBuffer, IM_ARRAYSIZE(fileCodeBuffer),
+                                  ImVec2(-FLT_MIN, ImGui::GetTextLineHeight() * 16));
+
+        // Run Button: When pressed, evaluate the code from the editor.
+        if (ImGui::Button("Run File")) {
+            std::string code(fileCodeBuffer);
+            // Create a new interpreter instance for file execution.
+            Interpreter fileInterpreter;
+            std::any result = fileInterpreter.evaluate(code, true);
+            std::string resultStr = anyToString(result);
+            fileOutput += "File Result:\n" + resultStr + "\n";
+        }
+
+
+        // Separate the editor and the output area.
+        ImGui::Separator();
+
+        // File Output: Display results from running file code.
+        ImGui::BeginChild("FileOutput", ImVec2(0, 200), true);
+        ImGui::TextUnformatted(fileOutput.c_str());
+        ImGui::EndChild();
+
+        ImGui::End(); // End File Execution Window
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);

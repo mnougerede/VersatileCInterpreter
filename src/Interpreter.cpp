@@ -3,7 +3,7 @@
 Interpreter::Interpreter()
 {}
 
-std::any Interpreter::evaluate(const std::string &code) {
+std::any Interpreter::evaluate(const std::string &code, bool isFileMode) {
     // Create the input stream from the code.
     antlr4::ANTLRInputStream inputStream(code);
 
@@ -20,14 +20,18 @@ std::any Interpreter::evaluate(const std::string &code) {
     CustomErrorListener errorListener;
     parser.addErrorListener(&errorListener);
 
-    // Use the top-level rule (assuming 'replInput' is defined in your grammar).
-    CParser::ReplInputContext *tree = parser.replInput();
-
-    // Create our visitor.
-    CInterpreterVisitor visitor(&globalEnv);
-
-    // Visit the parse tree.
-    std::any rawResult = visitor.visit(tree);
+    std::any rawResult;
+    if (isFileMode) {
+        // For file mode, require a complete translation unit.
+        CParser::TranslationUnitContext *tree = parser.translationUnit();
+        CInterpreterVisitor visitor(&globalEnv);
+        rawResult = visitor.visit(tree);
+    } else {
+        // For REPL mode, be more flexible.
+        CParser::ReplInputContext *tree = parser.replInput();
+        CInterpreterVisitor visitor(&globalEnv);
+        rawResult = visitor.visit(tree);
+    }
 
     // if the rawResult holds a VarValue, unwrap it.
     if (rawResult.type() == typeid(VarValue)) {

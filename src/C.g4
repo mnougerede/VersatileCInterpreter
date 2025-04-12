@@ -7,9 +7,17 @@ replInput
     : expression EOF                # EvaluateExpression
     | statement+ EOF                # ExecuteStatements
     | functionDefinition+           # AddFunctionDefinitions
-//    | translationUnit           # ExecuteFullProgram
+    | translationUnit               # ExecuteFullProgram
+    ;
+// Entry for full file execution: a complete translation unit.
+translationUnit
+    : externalDeclaration+ EOF
     ;
 
+externalDeclaration
+    : functionDefinition
+    | declaration
+    ;
 // A minimal function definition rule.
 functionDefinition
     : typeSpecifier IDENTIFIER '(' parameterList? ')' compoundStatement
