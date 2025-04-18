@@ -13,6 +13,7 @@ class CInterpreterVisitor : public CBaseVisitor {
 
 public:
     CInterpreterVisitor(Environment* env);
+    CInterpreterVisitor(Environment* env, antlr4::CommonTokenStream* tokens);
     virtual ~CInterpreterVisitor();
 
     // Helper struct for for-loop components.
@@ -22,7 +23,7 @@ public:
         std::any update;
     };
 
-    std::any visitEvaluateExpression(CParser::EvaluateExpressionContext *ctx) override;
+
     std::any visitAddSubExpression(CParser::AddSubExpressionContext *ctx) override;
     std::any visitMulDivExpression(CParser::MulDivExpressionContext *ctx) override;
     std::any visitParenthesizedExpression(CParser::ParenthesizedExpressionContext *ctx) override;
@@ -30,12 +31,18 @@ public:
     VarValue processDeclaration(CParser::TypeSpecifierContext *typeCtx, CParser::DeclaratorContext *declCtx,
                                 CParser::ExpressionContext *exprCtx);
 
+    std::any visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) override;
+
+    std::any visitPostfixExpression(CParser::PostfixExpressionContext *ctx) override;
+
     std::any visitUnaryMinusExpression(CParser::UnaryMinusExpressionContext *ctx) override;
     std::any visitVariableReference(CParser::VariableReferenceContext *ctx) override;
     std::any visitDeclareVariable(CParser::DeclareVariableContext *ctx) override;
     std::any visitNumberLiteral(CParser::NumberLiteralContext *ctx) override;
     std::any visitCharLiteral(CParser::CharLiteralContext *ctx) override;
     std::any aggregateResult(std::any aggregate, std::any nextResult) override;
+
+    std::any visitReturnStmt(CParser::ReturnStmtContext *ctx) override;
 
     std::any visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) override;
 
@@ -65,6 +72,7 @@ public:
 
 private:
     Environment* env;
+    antlr4::CommonTokenStream* tokens;
 };
 
 

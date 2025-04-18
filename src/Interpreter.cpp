@@ -1,35 +1,59 @@
 #include "Interpreter.h"
 #include "CustomErrorListener.h"
-Interpreter::Interpreter()
-{}
+#include "EnvScopeGuard.h"
+#include "ReturnException.h"
+
+Interpreter::Interpreter() {
+    globalEnv = new Environment(nullptr); // Global environment; no parent.
+}
 
 std::any Interpreter::evaluate(const std::string &code, bool isFileMode) {
     // Create the input stream from the code.
     antlr4::ANTLRInputStream inputStream(code);
-
-    // Lexical analysis.
     CLexer lexer(&inputStream);
     antlr4::CommonTokenStream tokens(&lexer);
-
-    // Parse the tokens.
     CParser parser(&tokens);
 
-    // Remove default error listeners.
     parser.removeErrorListeners();
-    // Attach our custom error listener.
     CustomErrorListener errorListener;
     parser.addErrorListener(&errorListener);
 
     std::any rawResult;
     if (isFileMode) {
         // For file mode, require a complete translation unit.
-        CParser::TranslationUnitContext *tree = parser.translationUnit();
-        CInterpreterVisitor visitor(&globalEnv);
-        rawResult = visitor.visit(tree);
+        auto* tree = parser.translationUnit();
+        CInterpreterVisitor visitor(globalEnv, &tokens);
+        visitor.visit(tree); // register functions etc
+
+        // Now lookup and call main.
+        Function* mainFunc = globalEnv->getFunction("main");
+        if (!mainFunc) {
+            throw std::runtime_error("No main function defined.");
+        }
+
+        antlr4::ANTLRInputStream  bodyIn(mainFunc->bodyText);
+        CLexer                   bodyLex(&bodyIn);
+        antlr4::CommonTokenStream bodyTokens(&bodyLex);
+        CParser                  bodyParser(&bodyTokens);
+
+        auto* bodyCtx = bodyParser.compoundStatement();
+
+        // Create a new scope to execute main.
+        {
+            EnvScopeGuard guard(globalEnv);
+            try {
+                rawResult = visitor.visit(bodyCtx);
+            } catch (const ReturnException &retEx) {
+                rawResult = retEx.getValue();
+            }
+        }
+
+
+
     } else {
         // For REPL mode, be more flexible.
         CParser::ReplInputContext *tree = parser.replInput();
-        CInterpreterVisitor visitor(&globalEnv);
+        CInterpreterVisitor visitor(globalEnv, &tokens);
         rawResult = visitor.visit(tree);
     }
 
@@ -50,4 +74,8 @@ std::any Interpreter::evaluate(const std::string &code, bool isFileMode) {
     }
     // If rawResult isn't a VarValue, assume it's already a plain type.
     return rawResult;
+}
+
+Interpreter::~Interpreter() {
+    delete globalEnv; // Clean up the dynamically allocated global environment.
 }

@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "Variable.h"
+#include "Function.h"
 
 class Environment {
 public:
@@ -28,8 +29,13 @@ public:
     // popScope returns the parent environment (exiting the current scope).
     Environment* popScope();
 
+    void defineFunction(const std::string &name, const Function &func);
+    Function* getFunction(const std::string &name);
+    bool functionExists(const std::string &name) const;
+
 private:
     std::unordered_map<std::string, Variable> variables;
+    std::unordered_map<std::string, Function> functions;
     //TODO considering upgrading to a smart pointer
     Environment* parent;  // Parent scope (nullptr for global scope).
 };

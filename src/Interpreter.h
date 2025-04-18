@@ -14,8 +14,10 @@ public:
 
     // Evaluates a string of C code and returns the result as std::any.
     std::any evaluate(const std::string &code, bool isFileMode);
+
+    ~Interpreter();
 private:
-    Environment globalEnv;
+    Environment* globalEnv;
 };
 
 #endif // INTERPRETER_H

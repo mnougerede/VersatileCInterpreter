@@ -4,10 +4,7 @@ options { visitor=true; }
 
 // Top-level rule for the REPL
 replInput
-    : expression EOF                # EvaluateExpression
-    | statement+ EOF                # ExecuteStatements
-    | functionDefinition+           # AddFunctionDefinitions
-    | translationUnit               # ExecuteFullProgram
+    : (externalDeclaration | statement)+ EOF
     ;
 // Entry for full file execution: a complete translation unit.
 translationUnit
@@ -74,6 +71,13 @@ forConditionExpression
 // The expression parts can be a list of expressions separated by commas.
 forUpdateExpression
     : assignmentExpression (',' assignmentExpression)*;
+
+// Jump statements for returning, breaking, etc.
+jumpStatement
+    : RETURN expression? ';'  #ReturnStmt
+    | BREAK ';'               #BreakStmt
+    | CONTINUE ';'            #ContinueStmt
+    ;
 // A statement can be an expression statement or a compound statement - others to be added as needed.
 statement
     : expressionStatement
@@ -81,6 +85,7 @@ statement
     | declaration
     | selectionStatement
     | iterationStatement
+    | jumpStatement
     ;
 
 // An expression statement is an expression followed by a semicolon. It may be empty.
@@ -101,6 +106,12 @@ assignmentExpression
     | unaryExpression ASSIGN assignmentExpression   # AssignmentExpr
     ;
 
+postfixExpression
+    : primaryExpression ( '(' argumentExpressionList? ')' )*
+    ;
+argumentExpressionList
+    : assignmentExpression (',' assignmentExpression)*
+    ;
 logicalOrExpression
     : logicalAndExpression ( OR logicalAndExpression )*
     ;
@@ -140,7 +151,7 @@ mulOp
 unaryExpression
     : MINUS unaryExpression                         # UnaryMinusExpression
     | NOT unaryExpression                           # LogicalNotExpression
-    | primaryExpression                             # PrimaryExpr
+    | postfixExpression                           #PostfixExpr
     ;
 primaryExpression
     : '(' expression ')'                   # ParenthesizedExpression
@@ -170,6 +181,9 @@ FOR   : 'for';
 IF          : 'if';
 ELSE        : 'else';
 SWITCH      : 'switch';
+RETURN      : 'return';
+BREAK       : 'break';
+CONTINUE    : 'continue';
 PLUS        : '+' ;
 MINUS       : '-' ;
 TIMES       : '*' ;

@@ -1,7 +1,10 @@
+#include "Utils.h"
+#include "Variable.h"
+
+#include <algorithm>
 #include <any>
 #include <string>
 
-#include "Variable.h"
 // A helper function to convert a VarValue to a boolean.
 bool convertToBool(const VarValue &value) {
     return std::visit([](auto&& arg) -> bool {
@@ -18,7 +21,14 @@ bool convertToBool(const VarValue &value) {
         }
     }, value);
 }
-
+// Trim whitespace from both ends
+std::string trim(const std::string &s) {
+    auto ws_front = std::find_if_not(s.begin(), s.end(), ::isspace);
+    auto ws_back  = std::find_if_not(s.rbegin(), s.rend(), ::isspace).base();
+    return (ws_front < ws_back
+            ? std::string(ws_front, ws_back)
+            : std::string());
+}
 // Helper function to convert std::any to a string
 std::string anyToString(const std::any &value) {
     try {

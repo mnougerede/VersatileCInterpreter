@@ -60,6 +60,9 @@ add_executable(VersatileCInterpreter
         src/ImGuiReplUI.cpp
         src/ImGuiReplUI.h
         src/Utils.cpp
+        src/Function.h
+        src/ReturnException.h
+        src/EnvScopeGuard.h
 )
 
 target_link_libraries(VersatileCInterpreter PRIVATE

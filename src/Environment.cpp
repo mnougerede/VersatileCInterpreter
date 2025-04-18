@@ -51,3 +51,26 @@ Environment* Environment::popScope() {
     // (consider using smart pointers).
     return parent;
 }
+
+// Function-related methods
+void Environment::defineFunction(const std::string &name, const Function &func) {
+    functions[name] = func;
+}
+Function* Environment::getFunction(const std::string &name) {
+    auto it = functions.find(name);
+    if (it != functions.end()) {
+        return &it->second;
+    } else if (parent != nullptr) {
+        return parent->getFunction(name);
+    }
+    return nullptr;
+}
+bool Environment::functionExists(const std::string &name) const {
+    if (functions.find(name) != functions.end()) {
+        return true;
+    }
+    if (parent != nullptr) {
+        return parent->functionExists(name);
+    }
+    return false;
+}

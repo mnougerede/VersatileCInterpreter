@@ -6,6 +6,7 @@
 #include "Utils.h"
 #include "Variable.h"
 
+#define LOG(x) std::clog << x << std::endl;
 
 // Original run() using std::cin and std::cout.
 void REPL::run() {
@@ -14,33 +15,41 @@ void REPL::run() {
 
 // Overloaded run() that accepts input and output streams.
 void REPL::run(std::istream &in, std::ostream &out, bool testMode) {
-    std::string input;
+    std::string line;
     if (!testMode) {
         out << "Enter an expression (or 'exit' to quit):\n> ";
     }
 
-    while (std::getline(in, input)) {
-        if (input == "exit" || input == "quit") {
+    while (std::getline(in, line)) {
+        LOG("[REPL] Read line: '" << line << "'");
+
+        // Trim whitespace on both ends so that "exit " or " exit" will match.
+        auto trimmed = trim(line);
+        LOG("[REPL] Trimmed line: '" << trimmed << "'");
+
+        if (trimmed == "exit" || trimmed == "quit") {
+            LOG("[REPL] Exit command detected, breaking loop.");
             break;
         }
-        if (input.empty()) {
-            out << "Empty input, please try again.\n\n>";
+        if (trimmed.empty()) {
+            LOG("[REPL] Empty input, skipping.");
+            if (!testMode) out << "Empty input, please try again.\n\n> ";
             continue;
         }
 
         try {
-            // Evaluate the input using the interpreter.
-            std::any result = interpreter.evaluate(input, false);
-
-            // Convert result to a string using the helper function.
-            std::string output = anyToString(result);
+            LOG("[REPL] Evaluating: " << trimmed);
+            std::any result = interpreter.evaluate(trimmed, false);
+            std::string outStr = anyToString(result);
+            LOG("[REPL] Result: " << outStr);
 
             if (testMode) {
-                out << output;
+                out << outStr;
             } else {
-                out << output << "\n\n> ";
+                out << outStr << "\n\n> ";
             }
         } catch (const std::exception &e) {
+            LOG("[REPL] Caught exception: " << e.what());
             if (testMode) {
                 out << "Error: " << e.what();
             } else {
@@ -48,7 +57,9 @@ void REPL::run(std::istream &in, std::ostream &out, bool testMode) {
             }
         }
     }
+    LOG("[REPL] Exiting run()");
 }
+
 // Evaluate a single command
 std::string REPL::evaluateCommand(const std::string &input) {
     try {

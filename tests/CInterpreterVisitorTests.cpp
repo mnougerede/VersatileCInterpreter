@@ -18,6 +18,8 @@ T extractValue(const std::any &result) {
 }
 
 
+
+
 // Helper function to evaluate an expression using the visitor.
 std::any evaluateExpression(const std::string &expr) {
     antlr4::ANTLRInputStream inputStream(expr);
@@ -34,7 +36,7 @@ std::any evaluateExpression(const std::string &expr) {
 // ----------------------- Numeric and Arithmetic Tests ------------------
 // Test that a number literal is evaluated correctly.
 TEST(CInterpreterVisitorTest, NumberLiteral) {
-    std::any result = evaluateExpression("42");
+    std::any result = evaluateExpression("42;");
     // Since "42" has no decimal point, it should be returned as an int.
     // Our helper converts int to double for comparison.
     int value = extractValue<int>(result);
@@ -43,14 +45,14 @@ TEST(CInterpreterVisitorTest, NumberLiteral) {
 
 // Test addition.
 TEST(CInterpreterVisitorTest, Addition) {
-    std::any result = evaluateExpression("3 + 4");
+    std::any result = evaluateExpression("3 + 4;");
     int value = extractValue<int>(result);
     EXPECT_EQ(value, 7);
 }
 
 // Test unary minus.
 TEST(CInterpreterVisitorTest, UnaryMinus) {
-    std::any result = evaluateExpression("-5");
+    std::any result = evaluateExpression("-5;");
     int value = extractValue<int>(result);
     EXPECT_EQ(value, -5);
 }
@@ -64,7 +66,7 @@ TEST(CInterpreterVisitorTest, Parentheses) {
 
 // Test multiplication combined with addition.
 TEST(CInterpreterVisitorTest, MultiplicationAndAddition) {
-    std::any result = evaluateExpression("2 * (3 + 4)");
+    std::any result = evaluateExpression("2 * (3 + 4);");
     int value = extractValue<int>(result);
     EXPECT_EQ(value, 14);
 }

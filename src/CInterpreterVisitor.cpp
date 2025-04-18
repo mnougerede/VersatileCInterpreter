@@ -3,16 +3,26 @@
 //
 
 #include "CInterpreterVisitor.h"
+
+#include <CLexer.h>
+
 #include "CParser.h"
 #include <stdexcept>
 #include <string>
-
+#include "antlr4-runtime.h"
+#include "EnvScopeGuard.h"
 #include "Utils.h"
+#include "ReturnException.h"
 
-// Constructor definition
+// Single-arg ctor: no token stream available
 CInterpreterVisitor::CInterpreterVisitor(Environment* environment)
-    : env(environment) {
-}
+  : env(environment), tokens(nullptr) {}
+
+// Two-arg ctor: store the pointer so later you can call tokens->getText(...)
+CInterpreterVisitor::CInterpreterVisitor(Environment* environment,
+                                         antlr4::CommonTokenStream* toks)
+  : env(environment), tokens(toks) {}
+
 
 // Destructor definition
 CInterpreterVisitor::~CInterpreterVisitor() {
@@ -21,9 +31,7 @@ CInterpreterVisitor::~CInterpreterVisitor() {
 
 #define LOG(x) std::clog << x << std::endl;
 
-std::any CInterpreterVisitor::visitEvaluateExpression(CParser::EvaluateExpressionContext *ctx) {
-    return visit(ctx->expression());
-}
+
 
 std::any CInterpreterVisitor::visitAddSubExpression(CParser::AddSubExpressionContext *ctx) {
     VarValue left = std::any_cast<VarValue>(visit(ctx->multiplicativeExpression(0))); // First term
@@ -42,8 +50,13 @@ std::any CInterpreterVisitor::visitAddSubExpression(CParser::AddSubExpressionCon
             }
         }, left, right);
     }
+
     return std::any(left);
 }
+
+
+
+
 std::any CInterpreterVisitor::visitMulDivExpression(CParser::MulDivExpressionContext *ctx) {
     VarValue left = std::any_cast<VarValue>(visit(ctx->unaryExpression(0)));
 
@@ -72,6 +85,8 @@ std::any CInterpreterVisitor::visitUnaryMinusExpression(CParser::UnaryMinusExpre
     }, value);
     return std::any(value);
 }
+
+
 
 std::any CInterpreterVisitor::visitVariableReference(CParser::VariableReferenceContext *ctx) {
     std::string varName = ctx->getText();
@@ -118,6 +133,15 @@ std::any CInterpreterVisitor::aggregateResult(std::any aggregate, std::any nextR
     return nextResult;
 }
 
+std::any CInterpreterVisitor::visitReturnStmt(CParser::ReturnStmtContext *ctx) {
+    // If there's an expression, evaluate it; otherwise default to 0 (or whatever void→int you like).
+    VarValue rv = ctx->expression()
+        ? std::any_cast<VarValue>(visit(ctx->expression()))
+        : VarValue(0);
+    // Throw it so the call‐site stops here.
+    throw ReturnException(rv);
+}
+
 std::any CInterpreterVisitor::visitLogicalOrExpression(CParser::LogicalOrExpressionContext *ctx) {
     // Evaluate the first operand.
     VarValue result = std::any_cast<VarValue>(visit(ctx->logicalAndExpression(0)));
@@ -143,6 +167,7 @@ std::any CInterpreterVisitor::visitLogicalOrExpression(CParser::LogicalOrExpress
     return std::any(result);
 }
 
+
 std::any CInterpreterVisitor::visitLogicalAndExpression(CParser::LogicalAndExpressionContext *ctx) {
     // Evaluate the first operand.
     VarValue result = std::any_cast<VarValue>(visit(ctx->equalityExpression(0)));
@@ -163,7 +188,6 @@ std::any CInterpreterVisitor::visitLogicalAndExpression(CParser::LogicalAndExpre
     }
     return std::any(result);
 }
-
 
 std::any CInterpreterVisitor::visitEqualityExpression(CParser::EqualityExpressionContext *ctx) {
     // Evaluate the first relational expression.
@@ -218,6 +242,8 @@ std::any CInterpreterVisitor::visitRelationalExpression(CParser::RelationalExpre
     return std::any(left);
 }
 
+
+
 std::any CInterpreterVisitor::visitLogicalNotExpression(CParser::LogicalNotExpressionContext *ctx) {
     // Evaluate the operand of the '!' operator.
     VarValue operand = std::any_cast<VarValue>(visit(ctx->unaryExpression()));
@@ -231,6 +257,7 @@ std::any CInterpreterVisitor::visitLogicalNotExpression(CParser::LogicalNotExpre
     // Return the Boolean result wrapped in a VarValue.
     return std::any(VarValue(boolResult));
 }
+
 
 
 std::any CInterpreterVisitor::visitAssignmentExpr(CParser::AssignmentExprContext *ctx) {
@@ -533,4 +560,89 @@ VarValue CInterpreterVisitor::processDeclaration(CParser::TypeSpecifierContext* 
     return varValue;
 }
 
+std::any CInterpreterVisitor::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
+    // Extract function name and return type.
+    std::string funcName = ctx->IDENTIFIER()->getText();
+    std::string returnType = ctx->typeSpecifier()->getText();
 
+    // Process the parameter list.
+    std::vector<std::string> params;
+    if (auto *pl = ctx->parameterList()) {
+        for (auto *p : pl->parameter())
+            params.push_back(p->IDENTIFIER()->getText());
+    }
+
+    auto *charStream = tokens->getTokenSource()->getInputStream();
+    auto startIndex  = ctx->compoundStatement()->getStart()->getStartIndex();
+    auto stopIndex   = ctx->compoundStatement()->getStop()->getStopIndex();
+    antlr4::misc::Interval interval(startIndex, stopIndex);
+    std::string bodyText = charStream->getText(interval);
+
+    // Create a function object.
+    Function func;
+    func.returnType = returnType;
+    func.parameterNames = std::move(params);
+    func.bodyText      = std::move(bodyText);
+
+
+    // Register the function in the current environment.
+    env->defineFunction(funcName, func);
+
+    // void return value
+    return std::any();
+}
+
+std::any CInterpreterVisitor::visitPostfixExpression(CParser::PostfixExpressionContext *ctx) {
+    // If it’s just a primary expression, delegate:
+    if (ctx->children.size() == 1) {
+        return visit(ctx->primaryExpression());
+    }
+
+    // Otherwise, treat it as a function call:
+    std::string funcName = ctx->primaryExpression()->getText();
+
+    Function* func = env->getFunction(funcName);
+    if (!func) {
+        throw std::runtime_error("Function '" + funcName + "' is not defined.");
+    }
+
+    // 1) Evaluate the arguments into VarValue
+    std::vector<VarValue> args;
+    if (!ctx->argumentExpressionList().empty()) {
+        auto argListCtx = ctx->argumentExpressionList().front();
+        for (auto exprCtx : argListCtx->assignmentExpression()) {
+            args.push_back(std::any_cast<VarValue>(visit(exprCtx)));
+        }
+    }
+    if (args.size() != func->parameterNames.size()) {
+        throw std::runtime_error(
+            "Function '" + funcName + "' expects " +
+            std::to_string(func->parameterNames.size()) +
+            " arguments but got " +
+            std::to_string(args.size()));
+    }
+
+    // 2) Create a new scope, bind parameters, then re‐parse & invoke the stored body
+    {
+        EnvScopeGuard guard(env);
+
+        // Bind parameters (assumes all int for now; adapt if you store types)
+        for (size_t i = 0; i < args.size(); ++i) {
+            env->define(func->parameterNames[i], VarType::INT, args[i]);
+        }
+
+        // Re‐lex and parse the saved compound statement text:
+        antlr4::ANTLRInputStream bodyIn(func->bodyText);
+        CLexer                   bodyLex(&bodyIn);
+        antlr4::CommonTokenStream bodyTokens(&bodyLex);
+        CParser                  bodyParser(&bodyTokens);
+        auto bodyCtx = bodyParser.compoundStatement();
+
+        // Visit it and catch a ReturnException
+        try {
+            return visit(bodyCtx);
+        } catch (const ReturnException &retEx) {
+            return retEx.getValue();
+        }
+    }
+}
