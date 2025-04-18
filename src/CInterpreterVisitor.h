@@ -16,6 +16,8 @@ public:
     CInterpreterVisitor(Environment* env, antlr4::CommonTokenStream* tokens);
     virtual ~CInterpreterVisitor();
 
+
+
     // Helper struct for for-loop components.
     struct ForLoopComponents {
         std::any initializer;
@@ -67,7 +69,7 @@ public:
     std::any visitForCondition(CParser::ForConditionContext *ctx) override;
 
     std::any visitForDeclaration(CParser::ForDeclarationContext *ctx) override;
-
+    std::any visitCompoundStatement(CParser::CompoundStatementContext *ctx) override;
 
 
 private:

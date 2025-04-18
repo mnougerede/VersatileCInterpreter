@@ -507,7 +507,24 @@ std::any CInterpreterVisitor::visitForDeclaration(CParser::ForDeclarationContext
     return value;
 }
 
+std::any CInterpreterVisitor::visitCompoundStatement(CParser::CompoundStatementContext *ctx) {
+    // RAII guard: on construction it does env = env->pushScope(),
+    // on destruction it pops back to the parent.
+    EnvScopeGuard guard(env);
 
+    std::any lastValue;
+    // first process any declarations
+    for (auto *declCtx : ctx->declaration()) {
+        lastValue = visit(declCtx);
+    }
+    // then run all the statements
+    for (auto *stmtCtx : ctx->statement()) {
+        lastValue = visit(stmtCtx);
+    }
+    // guard goes out of scope here → pops env back to the parent
+
+    return lastValue;
+}
 
 
 
