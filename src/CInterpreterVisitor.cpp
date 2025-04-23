@@ -578,88 +578,160 @@ VarValue CInterpreterVisitor::processDeclaration(CParser::TypeSpecifierContext* 
 }
 
 std::any CInterpreterVisitor::visitFunctionDefinition(CParser::FunctionDefinitionContext *ctx) {
-    // Extract function name and return type.
-    std::string funcName = ctx->IDENTIFIER()->getText();
-    std::string returnType = ctx->typeSpecifier()->getText();
+    // --- 1. Helper to map the C type name to your VarType enum ---
+    auto toVarType = [&](const std::string &typeStr) {
+        if      (typeStr == "int")    return VarType::INT;
+        else if (typeStr == "float")  return VarType::FLOAT;
+        else if (typeStr == "double") return VarType::DOUBLE;
+        else if (typeStr == "char")   return VarType::CHAR;
+        else throw std::runtime_error("Unknown function return/parameter type: " + typeStr);
+    };
 
-    // Process the parameter list.
-    std::vector<std::string> params;
+    // --- 2. Extract name + return type ---
+    std::string funcName      = ctx->IDENTIFIER()->getText();
+    std::string returnTypeStr = ctx->typeSpecifier()->getText();
+    VarType    returnType     = toVarType(returnTypeStr);
+
+    // --- 3. Pull out parameter list (if any) ---
+    std::vector<std::string> paramNames;
+    std::vector<VarType>     paramTypes;
     if (auto *pl = ctx->parameterList()) {
-        for (auto *p : pl->parameter())
-            params.push_back(p->IDENTIFIER()->getText());
+        for (auto *p : pl->parameter()) {
+            // e.g. "int x"
+            std::string paramTypeStr = p->typeSpecifier()->getText();
+            std::string paramName    = p->IDENTIFIER()->getText();
+
+            paramTypes.push_back(toVarType(paramTypeStr));
+            paramNames.push_back(std::move(paramName));
+        }
     }
 
+    // --- 4. Extract the compound‐statement body text exactly as before ---
     auto *charStream = tokens->getTokenSource()->getInputStream();
-    auto startIndex  = ctx->compoundStatement()->getStart()->getStartIndex();
-    auto stopIndex   = ctx->compoundStatement()->getStop()->getStopIndex();
+    auto  startIndex = ctx->compoundStatement()->getStart()->getStartIndex();
+    auto  stopIndex  = ctx->compoundStatement()->getStop()->getStopIndex();
     antlr4::misc::Interval interval(startIndex, stopIndex);
     std::string bodyText = charStream->getText(interval);
 
-    // Create a function object.
+
+    // --- 5. Fill in the Function object ---
     Function func;
-    func.returnType = returnType;
-    func.parameterNames = std::move(params);
-    func.bodyText      = std::move(bodyText);
+    func.returnType     = returnType;            // your VarType returnType
+    func.parameterTypes = std::move(paramTypes); // the types vector
+    func.parameterNames = std::move(paramNames); // the names vector
+    func.bodyText       = std::move(bodyText);
 
-
-    // Register the function in the current environment.
+    // --- 6. Register it and return void ---
     env->defineFunction(funcName, func);
-
-    // void return value
     return std::any();
 }
 
 std::any CInterpreterVisitor::visitPostfixExpression(CParser::PostfixExpressionContext *ctx) {
-    // If it’s just a primary expression, delegate:
+    // 1) If it's just a primary expression, delegate:
     if (ctx->children.size() == 1) {
         return visit(ctx->primaryExpression());
     }
 
-    // Otherwise, treat it as a function call:
+    // 2) Look up the function in the environment:
     std::string funcName = ctx->primaryExpression()->getText();
-
     Function* func = env->getFunction(funcName);
     if (!func) {
         throw std::runtime_error("Function '" + funcName + "' is not defined.");
     }
 
-    // 1) Evaluate the arguments into VarValue
-    std::vector<VarValue> args;
+    // 3) Evaluate all argument expressions to VarValue:
+    std::vector<VarValue> rawArgs;
     if (!ctx->argumentExpressionList().empty()) {
-        auto argListCtx = ctx->argumentExpressionList().front();
-        for (auto exprCtx : argListCtx->assignmentExpression()) {
-            args.push_back(std::any_cast<VarValue>(visit(exprCtx)));
+        auto *argList = ctx->argumentExpressionList().front();
+        for (auto *exprCtx : argList->assignmentExpression()) {
+            rawArgs.push_back(std::any_cast<VarValue>(visit(exprCtx)));
         }
     }
-    if (args.size() != func->parameterNames.size()) {
+
+    // 4) Check arity:
+    auto &paramNames = func->parameterNames;
+    auto &paramTypes = func->parameterTypes;
+    if (rawArgs.size() != paramNames.size()) {
         throw std::runtime_error(
-            "Function '" + funcName + "' expects " +
-            std::to_string(func->parameterNames.size()) +
-            " arguments but got " +
-            std::to_string(args.size()));
+          "Function '" + funcName +
+          "' expects " + std::to_string(paramNames.size()) +
+          " arguments but got " + std::to_string(rawArgs.size()));
     }
 
-    // 2) Create a new scope, bind parameters, then re‐parse & invoke the stored body
-    {
-        EnvScopeGuard guard(env);
+    // 5) Convert each rawArg → declared parameter type:
+    std::vector<VarValue> converted;
+    converted.reserve(rawArgs.size());
+    for (size_t i = 0; i < rawArgs.size(); ++i) {
+        VarType expected = paramTypes[i];
+        VarValue v = rawArgs[i];
+        VarValue cv = std::visit([&](auto a) -> VarValue {
+            using A = decltype(a);
+            if constexpr (!std::is_arithmetic_v<A>) {
+                throw std::runtime_error("Non-arithmetic argument for parameter " + std::to_string(i));
+            }
+            switch (expected) {
+                case VarType::INT:    return static_cast<int>(a);
+                case VarType::DOUBLE: return static_cast<double>(a);
+                case VarType::CHAR:   return static_cast<char>(a);
+            }
+            throw std::runtime_error("Unknown parameter type");
+        }, v);
+        converted.push_back(cv);
+    }
 
-        // Bind parameters (assumes all int for now; adapt if you store types)
-        for (size_t i = 0; i < args.size(); ++i) {
-            env->define(func->parameterNames[i], VarType::INT, args[i]);
+    // 6) Run the function body in a fresh scope:
+    {
+        EnvScopeGuard guard(env);  // pushes new scope, pops on destructor
+
+        // 6a) Define the parameters:
+        for (size_t i = 0; i < paramNames.size(); ++i) {
+            env->define(paramNames[i], paramTypes[i], converted[i]);
         }
 
-        // Re‐lex and parse the saved compound statement text:
+        // 6b) Re-lex & parse the saved body:
         antlr4::ANTLRInputStream bodyIn(func->bodyText);
         CLexer                   bodyLex(&bodyIn);
         antlr4::CommonTokenStream bodyTokens(&bodyLex);
         CParser                  bodyParser(&bodyTokens);
-        auto bodyCtx = bodyParser.compoundStatement();
+        auto *bodyCtx = bodyParser.compoundStatement();
 
-        // Visit it and catch a ReturnException
+        // 6c) Execute, catching any ReturnException:
         try {
-            return visit(bodyCtx);
-        } catch (const ReturnException &retEx) {
-            return retEx.getValue();
+            // if no return, we rely on aggregateResult to give us the last statement’s value
+            VarValue rawRet = std::any_cast<VarValue>(visit(bodyCtx));
+            // convert it to the declared return type:
+            VarValue finalRet = std::visit([&](auto a) -> VarValue {
+                using A = decltype(a);
+                if constexpr (!std::is_arithmetic_v<A>) {
+                    throw std::runtime_error("Non-arithmetic return value");
+                }
+                switch (func->returnType) {
+                    case VarType::INT:    return static_cast<int>(a);
+                    case VarType::DOUBLE: return static_cast<double>(a);
+                    case VarType::CHAR:   return static_cast<char>(a);
+                }
+                throw std::runtime_error("Unknown return type");
+            }, rawRet);
+            return std::any(finalRet);
+        }
+        catch (const ReturnException &retEx) {
+            VarValue rawRet = retEx.getValue();  // now returns VarValue directly
+            VarValue finalRet = std::visit([&](auto a) -> VarValue {
+                using A = decltype(a);
+                if constexpr (!std::is_arithmetic_v<A>) {
+                    throw std::runtime_error("Non-arithmetic return value");
+                }
+                switch (func->returnType) {
+                    case VarType::INT:    return static_cast<int>(a);
+                    case VarType::DOUBLE: return static_cast<double>(a);
+                    case VarType::CHAR:   return static_cast<char>(a);
+                }
+                throw std::runtime_error("Unknown return type");
+            }, rawRet);
+            return std::any(finalRet);
         }
     }
+
+    // unreachable: compoundStatement always returns something
+    return std::any();
 }

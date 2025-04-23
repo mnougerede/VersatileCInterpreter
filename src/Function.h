@@ -8,11 +8,11 @@
 
 // A simple structure to represent a function.
 struct Function {
-    std::string returnType;                  // e.g., "int", "void", etc.
-    std::vector<std::string> parameterNames; // Parameter names.
-    // Optionally, you might store parameter types as well.
-    // You can store the function body as an ANTLR parse tree node.
+    VarType returnType;                           // e.g. VarType::INT, .DOUBLE, .CHAR
+    std::vector<VarType> parameterTypes;          // parallel to
+    std::vector<std::string> parameterNames;      // parameterNames
     std::string bodyText;
 };
+
 
 #endif // FUNCTION_H

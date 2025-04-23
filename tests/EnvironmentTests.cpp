@@ -62,3 +62,81 @@ TEST(EnvironmentTest, UndefinedVariableThrows) {
         globalEnv.get("undefined_var");
     }, std::runtime_error);
 }
+
+// In EnvironmentTest.cpp
+
+// 1) assign(): writing to an existing variable, both locally and in a parent
+TEST(EnvironmentTest, AssignUpdatesLocal) {
+    Environment env;
+    env.define("x", VarType::INT, 1);
+    env.assign("x", VarType::INT, 5);
+    EXPECT_EQ(std::get<int>(env.get("x").value), 5);
+}
+
+TEST(EnvironmentTest, AssignPropagatesToParent) {
+    Environment parent;
+    parent.define("y", VarType::INT, 2);
+    Environment child(&parent);
+    child.assign("y", VarType::INT, 7);
+    // child has no own 'y', so parent should change
+    EXPECT_EQ(std::get<int>(parent.get("y").value), 7);
+}
+
+// 2) assign() on undefined should throw
+TEST(EnvironmentTest, AssignUndefinedThrows) {
+    Environment env;
+    EXPECT_THROW(env.assign("no_such", VarType::INT, 0), std::runtime_error);
+}
+
+// 3) pushScope() / popScope() round-trip
+TEST(EnvironmentTest, PushPopScope) {
+    Environment root;
+    root.define("a", VarType::INT, 42);
+    Environment* child = root.pushScope();
+    // child sees 'a'
+    EXPECT_TRUE(child->exists("a"));
+    Environment* back = child->popScope();
+    EXPECT_EQ(back, &root);
+    delete child;
+}
+
+// 4) function‐related methods
+TEST(EnvironmentTest, DefineAndLookupFunction) {
+    Environment env;
+    Function f;
+    f.returnType     = VarType::INT;            // ← use the VarType enum
+    f.parameterNames = {"x","y"};
+    // (if you added parameterTypes, e.g. {VarType::INT,VarType::DOUBLE}, set those too)
+
+    env.defineFunction("foo", f);
+    EXPECT_TRUE(env.functionExists("foo"));
+    Function* p = env.getFunction("foo");
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(p->returnType, VarType::INT);
+    EXPECT_EQ(p->parameterNames.size(), 2u);
+}
+
+TEST(EnvironmentTest, FunctionLookupInParent) {
+    Environment parent;
+    Function f;
+    f.returnType = VarType::VOID;                 // again, use enum
+    parent.defineFunction("bar", f);
+
+    Environment child(&parent);
+    EXPECT_TRUE(child.functionExists("bar"));
+    EXPECT_EQ(child.getFunction("bar")->returnType, VarType::VOID);
+}
+TEST(EnvironmentTest, FunctionParameterTypes) {
+    Environment env;
+    Function f;
+    f.returnType      = VarType::INT;
+    f.parameterNames  = {"a","b"};
+    f.parameterTypes  = {VarType::INT, VarType::DOUBLE};
+    env.defineFunction("mix", f);
+
+    Function* p = env.getFunction("mix");
+    ASSERT_NE(p, nullptr);
+    EXPECT_EQ(p->parameterTypes.size(), 2u);
+    EXPECT_EQ(p->parameterTypes[0], VarType::INT);
+    EXPECT_EQ(p->parameterTypes[1], VarType::DOUBLE);
+}

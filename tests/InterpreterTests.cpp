@@ -252,3 +252,4 @@ TEST(InterpreterFileModeTest, FreshEnvironmentForEachRun) {
     int value2 = std::any_cast<int>(result2);
     EXPECT_EQ(value2, 0);
 }
+

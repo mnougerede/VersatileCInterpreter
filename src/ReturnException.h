@@ -1,22 +1,24 @@
+// ReturnException.h
 #ifndef RETURN_EXCEPTION_H
 #define RETURN_EXCEPTION_H
 
-#include <stdexcept>
-#include <any>
+#include <exception>
+#include "Variable.h"    // for VarValue
 
-class ReturnException : public std::runtime_error {
+class ReturnException : public std::exception {
 public:
-    // Constructor accepts a return value.
-    ReturnException(const std::any &value)
-        : std::runtime_error("Function returned"), returnValue(value) {}
+    // take a VarValue directly
+    ReturnException(VarValue v)
+      : value(v)
+    {}
 
-    // Retrieve the return value.
-    std::any getValue() const {
-        return returnValue;
+    // return the VarValue
+    VarValue getValue() const {
+        return value;
     }
 
 private:
-    std::any returnValue;
+    VarValue value;
 };
 
-#endif // RETURN_EXCEPTION_H
+#endif
