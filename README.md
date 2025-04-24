@@ -76,16 +76,8 @@ make
 
 ### ▶️ Run
 
-#### Run REPL Mode
-
 ```bash
 ./VersatileCInterpreter
-```
-
-#### Run Source File
-
-```bash
-./VersatileCInterpreter path/to/program.c
 ```
 
 ---
