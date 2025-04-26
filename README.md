@@ -104,23 +104,6 @@ Test coverage includes:
 
 ---
 
-## 📁 Project Structure
-
-```
-.
-├── src/                  # Main interpreter source files
-├── include/              # Header files
-├── grammar/              # ANTLR grammar definition
-├── tests/                # Unit and integration tests
-├── repl/                 # REPL interface
-├── main.cpp              # Program entry point
-├── CMakeLists.txt        # Build configuration
-├── references.bib        # Bibliography for report
-└── README.md             # This file
-```
-
----
-
 ## 📜 License and Attribution
 
 This project was created as part of a final year MComp project at the University of Sussex in 2025. It may be reused for educational purposes with proper attribution.
